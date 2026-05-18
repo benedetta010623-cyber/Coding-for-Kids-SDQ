@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      // For now, let's allow the user's specific email if defined, 
+      // or check a special 'admins' collection.
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Students
+    match /students/{studentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == studentId;
+      allow update: if (isSignedIn() && request.auth.uid == studentId) || isAdmin();
+      
+      function isValidStudent(data) {
+        return data.name is string && data.name.size() <= 100 &&
+               data.class is string && data.class.size() <= 20 &&
+               data.uid is string &&
+               data.role in ['student', 'admin'];
+      }
+    }
+
+    // Curriculum
+    match /curriculum/{moduleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Projects
+    match /projects/{projectId} {
+      // Public can only see approved projects
+      allow list, get: if resource.data.status == 'approved' || (isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin()));
+      
+      allow create: if isSignedIn() && isValidProject(request.resource.data) && request.resource.data.studentId == request.auth.uid;
+      
+      allow update: if isSignedIn() && (
+        // Owner can update their own project but NOT change status to approved
+        (isOwner(resource.data.studentId) && 
+         request.resource.data.status == resource.data.status && 
+         isValidProject(request.resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'category', 'imageUrl', 'link', 'type']))
+        || 
+        // Admin can do anything (like approve)
+        isAdmin()
+      );
+
+      allow delete: if isAdmin();
+
+      function isValidProject(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.studentId is string &&
+               data.status in ['pending', 'approved'] &&
+               data.type in ['image', 'scratch', 'document', 'other'];
+      }
+    }
+    
+    // Admins collection (protected)
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      allow write: if isSignedIn() && request.auth.uid == adminId; // Allow self-setup
+    }
+  }
+}

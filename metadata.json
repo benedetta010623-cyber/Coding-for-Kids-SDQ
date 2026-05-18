@@ -1,0 +1,8 @@
+{
+  "name": "Showcase Coding Kids SDQ",
+  "description": "Platform pameran karya siswa ekskul coding dengan fitur unggah mandiri dan profil dinamis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

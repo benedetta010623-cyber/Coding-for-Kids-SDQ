@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "student": {
+      "title": "Student Profile",
+      "description": "Student details and profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "class": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bio": { "type": "string" },
+        "uid": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] }
+      },
+      "required": ["name", "class", "uid", "role"]
+    },
+    "project": {
+      "title": "Student Project",
+      "description": "Project details submitted by students",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "link": { "type": "string" },
+        "type": { "type": "string", "enum": ["image", "scratch", "document", "other"] },
+        "status": { "type": "string", "enum": ["pending", "approved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "title", "category", "type", "status", "createdAt"]
+    "curriculum": {
+      "title": "Curriculum Item",
+      "description": "Modules and lessons for the classes",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "desc": { "type": "string" },
+        "semester": { "type": "number" },
+        "duration": { "type": "string" },
+        "icon": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "coming_soon"] }
+      },
+      "required": ["title", "semester", "order", "status"]
+    }
+  },
+  "firestore": {
+    "students": {
+      "schema": "student",
+      "description": "Collection of student profiles"
+    },
+    "projects": {
+      "schema": "project",
+      "description": "Collection of all student projects"
+    },
+    "curriculum": {
+      "schema": "curriculum",
+      "description": "Course modules for each semester"
+    }
+  }
+}
