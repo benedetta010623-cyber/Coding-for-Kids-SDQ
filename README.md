@@ -1,20 +1,28 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2070&auto=format&fit=crop" width="1200" height="475" alt="Coding Kids SDQ Banner" />
 </div>
 
-# Run and deploy your AI Studio app
+# SDQ Coding Portal 🚀
 
-This contains everything you need to run your app locally.
+Selamat datang di portal pembelajaran coding untuk siswa SDQ Al Mahmudah! Platform ini dirancang untuk memamerkan karya terbaik siswa dan mengelola modul pembelajaran.
 
-View your app in AI Studio: https://ai.studio/apps/d7ee986d-473b-483f-a8e0-18ded55261cf
+## Fitur Utama
+- **Gallery Karya**: Menampilkan game, animasi, dan website buatan siswa.
+- **Portal Siswa**: Dashboard bagi siswa untuk mengunggah proyek mereka.
+- **Panel Admin**: Manajemen modul kurikulum dan persetujuan karya siswa.
 
-## Run Locally
+## Cara Menjalankan Secara Lokal
 
-**Prerequisites:**  Node.js
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Setting Environment**:
+   Salin `.env.example` ke `.env` dan isi variabel yang diperlukan.
+3. **Jalankan Aplikasi**:
+   ```bash
+   npm run dev
+   ```
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+Dibuat dengan ❤️ untuk masa depan digital siswa SDQ Al Mahmudah.
