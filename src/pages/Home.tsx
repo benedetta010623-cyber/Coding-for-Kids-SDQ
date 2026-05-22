@@ -85,15 +85,25 @@ export default function Home() {
                 LOGIN SISWA
               </Link>
             </li>
-            {['Beranda', 'Kurikulum', 'Siswa', 'Karya'].map((item) => (
+            {['Beranda', 'Kurikulum', 'Siswa', 'Karya', 'Gallery'].map((item) => (
               <li key={item}>
-                <a 
-                  href={`#${item.toLowerCase()}`}
-                  className="px-4 py-2 bg-[#4ECDC4] border-2 border-black rounded-full font-bold text-sm shadow-[4px_4px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all block text-center"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.toUpperCase()}
-                </a>
+                {item === 'Gallery' ? (
+                  <Link 
+                    to="/gallery"
+                    className="px-4 py-2 bg-[#FF6B6B] text-white border-2 border-black rounded-full font-bold text-sm shadow-[4px_4px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all block text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    GALLERY ✨
+                  </Link>
+                ) : (
+                  <a 
+                    href={`#${item.toLowerCase()}`}
+                    className="px-4 py-2 bg-[#4ECDC4] border-2 border-black rounded-full font-bold text-sm shadow-[4px_4px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all block text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.toUpperCase()}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
@@ -117,6 +127,12 @@ export default function Home() {
               >
                 LIHAT KARYA KAMI 🚀
               </a>
+              <Link 
+                to="/gallery" 
+                className="inline-block bg-[#FF6B6B] text-white px-10 py-5 rounded-2xl border-4 border-black font-black text-2xl shadow-[8px_8px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+              >
+                GALLERY KEGIATAN 📸
+              </Link>
               <Link 
                 to="/login"
                 className="inline-block bg-white text-black px-10 py-5 rounded-2xl border-4 border-black font-black text-2xl shadow-[8px_8px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"

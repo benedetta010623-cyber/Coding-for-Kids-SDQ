@@ -74,6 +74,18 @@ service cloud.firestore {
       }
     }
     
+    // Gallery
+    match /gallery/{galleryId} {
+      allow read: if true; // Public or maybe isSignedIn() depending on requirement, let's make it true
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        // Only allow updating likes or comments
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments'])
+      );
+      allow delete: if isAdmin();
+    }
+    
     // Admins collection (protected)
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;

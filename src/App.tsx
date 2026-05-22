@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import InitPage from './pages/InitPage';
+import GalleryPage from './pages/GalleryPage';
 import { AuthProvider } from './contexts/AuthContext';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/init" element={<InitPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
         </Routes>
       </Router>
     </AuthProvider>

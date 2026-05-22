@@ -45,6 +45,37 @@
         "status": { "type": "string", "enum": ["active", "coming_soon"] }
       },
       "required": ["title", "semester", "order", "status"]
+    },
+    "gallery": {
+      "title": "Gallery Activity",
+      "description": "Activities gallery uploaded by admin",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "userId": { "type": "string" },
+              "userName": { "type": "string" },
+              "text": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" }
+            },
+            "required": ["id", "userId", "userName", "text", "createdAt"]
+          }
+        }
+      },
+      "required": ["title", "imageUrl", "createdAt"]
     }
   },
   "firestore": {
@@ -59,6 +90,10 @@
     "curriculum": {
       "schema": "curriculum",
       "description": "Course modules for each semester"
+    },
+    "gallery": {
+      "schema": "gallery",
+      "description": "Collection of gallery activities"
     }
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, orderBy, addDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, updateDoc, doc, onSnapshot, orderBy, addDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2 } from 'lucide-react';
@@ -10,10 +10,17 @@ export default function AdminPanel() {
   const { user, profile, loading } = useAuth();
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [curriculum, setCurriculum] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'projects' | 'curriculum'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'curriculum' | 'gallery'>('projects');
+  const [gallery, setGallery] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isAddingModule, setIsAddingModule] = useState(false);
+  const [isAddingGallery, setIsAddingGallery] = useState(false);
+  const [newGallery, setNewGallery] = useState({
+    title: '',
+    description: '',
+    imageUrl: ''
+  });
   const [newModule, setNewModule] = useState({
     title: '',
     desc: '',
@@ -67,7 +74,13 @@ export default function AdminPanel() {
         setCurriculum(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
 
-      return () => { unsubProjects(); unsubCurriculum(); };
+      // Gallery Subscribe
+      const qGallery = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'));
+      const unsubGallery = onSnapshot(qGallery, (snapshot) => {
+        setGallery(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      return () => { unsubProjects(); unsubCurriculum(); unsubGallery(); };
     }
   }, [isAdmin]);
 
@@ -101,6 +114,30 @@ export default function AdminPanel() {
     }
   };
 
+  const handleAddGallery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'gallery'), {
+        ...newGallery,
+        uploadedBy: user.uid,
+        createdAt: serverTimestamp(),
+        likes: [],
+        comments: []
+      });
+      setIsAddingGallery(false);
+      setNewGallery({ title: '', description: '', imageUrl: '' });
+    } catch (error) { handleFirestoreError(error, OperationType.WRITE, 'gallery'); }
+  };
+
+  const handleDeleteGallery = async (id: string) => {
+    try { 
+      await deleteDoc(doc(db, 'gallery', id)); 
+    } catch (error) { 
+      handleFirestoreError(error, OperationType.DELETE, 'gallery'); 
+    }
+  };
+
   if (loading || isChecking) return <div className="min-h-screen flex items-center justify-center font-black">MEMERIKSA AKSES ADMIN...</div>;
   if (!isAdmin) return null;
 
@@ -125,6 +162,12 @@ export default function AdminPanel() {
              className={`px-4 py-2 rounded-xl font-black text-xs border-2 border-black transition-all ${activeTab === 'curriculum' ? 'bg-[#4ECDC4] text-black shadow-[4px_4px_0px_black]' : 'text-white'}`}
            >
              KURIKULUM
+           </button>
+           <button 
+             onClick={() => setActiveTab('gallery')}
+             className={`px-4 py-2 rounded-xl font-black text-xs border-2 border-black transition-all ${activeTab === 'gallery' ? 'bg-[#FF6B6B] text-white shadow-[4px_4px_0px_black]' : 'text-white'}`}
+           >
+             GALLERY KEGIATAN
            </button>
            <button onClick={() => navigate('/')} className="font-black text-sm uppercase opacity-70 hover:opacity-100 ml-4">Keluar</button>
         </div>
@@ -172,7 +215,7 @@ export default function AdminPanel() {
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'curriculum' ? (
           <div>
             <div className="flex justify-between items-center mb-10">
               <div>
@@ -235,6 +278,54 @@ export default function AdminPanel() {
               </div>
             )}
           </div>
+        ) : (
+          <div>
+            <div className="flex justify-between items-center mb-10">
+              <div>
+                <h2 className="font-['Fredoka_One'] text-3xl uppercase">Gallery Kegiatan</h2>
+                <p className="font-black text-gray-500 italic">Upload dokumentasi kegiatan untuk dilihat siswa.</p>
+              </div>
+              <button 
+                onClick={() => setIsAddingGallery(true)} 
+                className="bg-[#FF6B6B] text-white p-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
+              >
+                <Plus size={20} /> TAMBAH KEGIATAN
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {gallery.map(item => (
+                <div key={item.id} className="bg-white border-4 border-black rounded-[2rem] overflow-hidden shadow-[8px_8px_0px_black] group">
+                  <div className="h-48 bg-gray-100 border-b-4 border-black overflow-hidden relative">
+                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-['Fredoka_One'] text-xl mb-2">{item.title}</h3>
+                    <p className="text-gray-500 font-bold text-sm mb-4 line-clamp-2">{item.description}</p>
+                    <div className="flex justify-between items-center">
+                       <span className="text-xs font-black bg-gray-100 px-3 py-1 rounded-xl border-2 border-black">{item.likes?.length || 0} Likes</span>
+                       <button onClick={() => handleDeleteGallery(item.id)} className="bg-[#FF6B6B] text-white p-2 rounded-xl border-2 border-black hover:translate-y-1 transition-all"><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {isAddingGallery && (
+               <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white border-4 border-black p-10 rounded-[3rem] shadow-[16px_16px_0px_black] w-full max-w-xl">
+                   <h3 className="font-['Fredoka_One'] text-2xl uppercase mb-8">Tambah Kegiatan Baru</h3>
+                   <form onSubmit={handleAddGallery} className="space-y-4">
+                     <input type="text" placeholder="Judul Kegiatan" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" value={newGallery.title} onChange={e => setNewGallery({...newGallery, title: e.target.value})} />
+                     <textarea placeholder="Deskripsi Kegiatan" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold h-24" value={newGallery.description} onChange={e => setNewGallery({...newGallery, description: e.target.value})} />
+                     <input type="url" placeholder="Link Gambar (URL)" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" value={newGallery.imageUrl} onChange={e => setNewGallery({...newGallery, imageUrl: e.target.value})} />
+                     <button type="submit" className="w-full bg-[#FF6B6B] text-white py-4 rounded-xl border-4 border-black font-black text-xl shadow-[4px_4px_0px_black] hover:shadow-none transition-all mt-4">SIMPAN KEGIATAN ✨</button>
+                     <button type="button" onClick={() => setIsAddingGallery(false)} className="w-full font-black text-xs uppercase text-gray-400 mt-2">Batalkan</button>
+                   </form>
+                 </motion.div>
+               </div>
+            )}
+        </div>
         )}
       </main>
     </div>
