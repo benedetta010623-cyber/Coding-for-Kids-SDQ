@@ -19,6 +19,7 @@ export default function Dashboard() {
     type: 'scratch' as const
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
     avatarUrl: '',
@@ -87,6 +88,14 @@ export default function Dashboard() {
     e.preventDefault();
     if (!user || !profile) return;
     
+    setLinkError('');
+    if (newProject.link) {
+      if (!newProject.link.includes('scratch.mit.edu') && !newProject.link.includes('drive.google.com')) {
+        setLinkError('Link harus dari Scratch (scratch.mit.edu) atau Google Drive (drive.google.com)');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, 'projects'), {
@@ -295,8 +304,9 @@ export default function Dashboard() {
                       value={newProject.link}
                       onChange={e => setNewProject({...newProject, link: e.target.value})}
                       placeholder="https://scratch.mit.edu/projects/..."
-                      className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-2xl font-black outline-none focus:bg-white"
+                      className={`w-full bg-[#F3F4F6] border-2 ${linkError ? 'border-red-500' : 'border-black'} p-4 rounded-2xl font-black outline-none focus:bg-white`}
                     />
+                    {linkError && <p className="text-xs font-bold text-red-500 pt-1">{linkError}</p>}
                   </div>
                 </div>
 
