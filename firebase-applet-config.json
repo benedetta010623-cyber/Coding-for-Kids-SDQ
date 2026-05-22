@@ -3,6 +3,7 @@
   "appId": "1:501740898932:web:369b8d1dd64f32c0059f21",
   "apiKey": "AIzaSyDmcOAnXXO1hBZuPcbYW4iAXS93qAwGz4E",
   "authDomain": "hrd-software-pemula.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-d7ee986d-473b-483f-a8e0-18ded55261cf",
   "storageBucket": "hrd-software-pemula.firebasestorage.app",
   "messagingSenderId": "501740898932",
   "measurementId": ""

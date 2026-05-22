@@ -74,12 +74,6 @@ service cloud.firestore {
       }
     }
     
-    // Gallery
-    match /gallery/{imageId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     // Admins collection (protected)
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;

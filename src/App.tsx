@@ -5,7 +5,6 @@ import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import InitPage from './pages/InitPage';
-import Gallery from './pages/Gallery';
 import { AuthProvider } from './contexts/AuthContext';
 
 export default function App() {
@@ -14,7 +13,6 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/gallery" element={<Gallery />} />
           <Route path="/student/:id" element={<StudentProfile />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<Dashboard />} />

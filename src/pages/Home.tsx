@@ -96,15 +96,6 @@ export default function Home() {
                 </a>
               </li>
             ))}
-            <li>
-                <Link 
-                  to="/gallery"
-                  className="px-4 py-2 bg-[#FF8C32] text-white border-2 border-black rounded-full font-black text-sm shadow-[4px_4px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all block text-center"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  GALERI FOTO
-                </Link>
-            </li>
           </ul>
         </div>
       </nav>
@@ -126,12 +117,6 @@ export default function Home() {
               >
                 LIHAT KARYA KAMI 🚀
               </a>
-              <Link 
-                to="/gallery"
-                className="inline-block bg-[#4ECDC4] text-black px-10 py-5 rounded-2xl border-4 border-black font-black text-2xl shadow-[8px_8px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
-              >
-                GALERI FOTO 📸
-              </Link>
               <Link 
                 to="/login"
                 className="inline-block bg-white text-black px-10 py-5 rounded-2xl border-4 border-black font-black text-2xl shadow-[8px_8px_0px_black] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
