@@ -10,6 +10,7 @@
         "avatarUrl": { "type": "string" },
         "bio": { "type": "string" },
         "uid": { "type": "string" },
+        "password": { "type": "string" },
         "role": { "type": "string", "enum": ["student", "admin"] }
       },
       "required": ["name", "class", "uid", "role"]
@@ -31,6 +32,7 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["studentId", "title", "category", "type", "status", "createdAt"]
+    },
     "curriculum": {
       "title": "Curriculum Item",
       "description": "Modules and lessons for the classes",

@@ -29,8 +29,9 @@ service cloud.firestore {
     // Students
     match /students/{studentId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.auth.uid == studentId;
+      allow create: if (isSignedIn() && request.auth.uid == studentId) || isAdmin();
       allow update: if (isSignedIn() && request.auth.uid == studentId) || isAdmin();
+      allow delete: if isAdmin();
       
       function isValidStudent(data) {
         return data.name is string && data.name.size() <= 100 &&
