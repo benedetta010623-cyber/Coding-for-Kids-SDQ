@@ -11,18 +11,5 @@ Selamat datang di portal pembelajaran coding untuk siswa SDQ Al Mahmudah! Platfo
 - **Portal Siswa**: Dashboard bagi siswa untuk mengunggah proyek mereka.
 - **Panel Admin**: Manajemen modul kurikulum dan persetujuan karya siswa.
 
-## Cara Menjalankan Secara Lokal
-
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-2. **Setting Environment**:
-   Salin `.env.example` ke `.env` dan isi variabel yang diperlukan.
-3. **Jalankan Aplikasi**:
-   ```bash
-   npm run dev
-   ```
-
 ---
 Dibuat dengan ❤️ untuk masa depan digital siswa SDQ Al Mahmudah.
