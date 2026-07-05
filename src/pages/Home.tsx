@@ -227,7 +227,11 @@ export default function Home() {
                 className="group bg-white border-4 border-black rounded-[2rem] p-6 shadow-[8px_8px_0px_#FFD93D] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-center flex flex-col items-center"
               >
                 <div className="w-24 h-24 mb-4 rounded-full border-4 border-black overflow-hidden bg-[#FF6B6B]">
-                  <img src={student.avatarUrl} alt={student.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim() + '_' + (student.gender || 'L'))}${student.gender === 'P' ? '&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban&facialHairProbability=0' : '&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart'}`} 
+                    alt={student.name} 
+                    className="w-full h-full object-cover" 
+                  />
                 </div>
                 <h3 className="font-black text-sm md:text-base leading-tight mb-2 uppercase">{student.name}</h3>
                 <span className="bg-[#4ECDC4] border-2 border-black rounded-full px-4 py-1 text-xs font-black shadow-[3px_3px_0px_black]">

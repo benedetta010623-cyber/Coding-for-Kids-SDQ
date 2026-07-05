@@ -80,7 +80,11 @@ export default function StudentProfile() {
           
           <div className="px-8 pb-10 text-center -mt-20">
             <div className="w-40 h-40 mx-auto rounded-full border-4 border-black bg-white overflow-hidden shadow-[8px_8px_0px_black] mb-6 relative z-10">
-              <img src={student.avatarUrl} alt={student.name} className="w-full h-full object-cover" />
+              <img 
+                src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim() + '_' + (student.gender || 'L'))}${student.gender === 'P' ? '&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban&facialHairProbability=0' : '&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart'}`} 
+                alt={student.name} 
+                className="w-full h-full object-cover" 
+              />
             </div>
             
             <h1 className="font-['Fredoka_One'] text-3xl md:text-5xl mb-4 uppercase">{student.name}</h1>
