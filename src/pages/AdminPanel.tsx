@@ -4,10 +4,11 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, where, updateDoc, doc, onSnapshot, orderBy, addDoc, deleteDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download } from 'lucide-react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
+import * as XLSX from 'xlsx';
 
 export default function AdminPanel() {
   const { user, profile, loading } = useAuth();
@@ -30,6 +31,10 @@ export default function AdminPanel() {
   });
   const [registerStatus, setRegisterStatus] = useState({ type: '', message: '' });
   const [revealPasswords, setRevealPasswords] = useState<{ [key: string]: boolean }>({});
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [bulkStudents, setBulkStudents] = useState<any[]>([]);
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [newGallery, setNewGallery] = useState({
     title: '',
     description: '',
@@ -372,6 +377,137 @@ export default function AdminPanel() {
     }
   };
 
+  const downloadTemplate = () => {
+    const templateData = [
+      { "Nama Siswa": "Zayn Malik", "Kelas": "3A", "Username login": "zayn.malik", "Password": "codingkids123" },
+      { "Nama Siswa": "Ariel Noah", "Kelas": "4B", "Username login": "ariel.noah", "Password": "codingkids123" }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Daftar Siswa");
+    XLSX.writeFile(wb, "template_upload_siswa.xlsx");
+  };
+
+  const handleExcelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
+        
+        const mappedStudents = jsonData.map((row: any, index: number) => {
+          const findValue = (possibleKeys: string[]) => {
+            const keyFound = Object.keys(row).find(k => 
+              possibleKeys.some(pk => k.toLowerCase().replace(/\s+/g, '') === pk.toLowerCase().replace(/\s+/g, ''))
+            );
+            return keyFound ? String(row[keyFound]).trim() : '';
+          };
+
+          const name = findValue(['NamaSiswa', 'Nama', 'Name', 'NamaLengkap']);
+          const className = findValue(['Kelas', 'Class']);
+          const username = findValue(['Usernamelogin', 'Username', 'User']);
+          const password = findValue(['Password', 'Sandi', 'Pass']) || 'codingkids123';
+          const bio = findValue(['Bio', 'Deskripsi', 'Cita-Cita', 'CitaCita']) || 'Cita-citaku ingin menjadi programmer hebat!';
+
+          return {
+            id: index,
+            name,
+            class: className,
+            username,
+            password,
+            bio,
+            status: 'pending',
+            message: ''
+          };
+        }).filter(s => s.name);
+
+        if (mappedStudents.length === 0) {
+          alert("Tidak ditemukan data siswa yang valid di file Excel!");
+        } else {
+          setBulkStudents(mappedStudents);
+        }
+      } catch (err: any) {
+        alert("Gagal membaca file Excel: " + err.message);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const startBulkUpload = async () => {
+    if (bulkStudents.length === 0) {
+      alert("Belum ada data siswa untuk diunggah!");
+      return;
+    }
+
+    setIsProcessingBulk(true);
+    setBulkProgress({ current: 0, total: bulkStudents.length });
+
+    const secondaryApp = getApps().find(app => app.name === 'StudentRegistrar') || initializeApp(firebaseConfig, 'StudentRegistrar');
+    const secondaryAuth = getAuth(secondaryApp);
+
+    for (let i = 0; i < bulkStudents.length; i++) {
+      const student = bulkStudents[i];
+      if (student.status === 'success') {
+        continue;
+      }
+      
+      setBulkStudents(prev => prev.map((s, idx) => idx === i ? { ...s, status: 'processing' } : s));
+      setBulkProgress(prev => ({ ...prev, current: i + 1 }));
+
+      try {
+        if (!student.name || !student.class || !student.password) {
+          throw new Error("Kolom Nama, Kelas, atau Password kosong!");
+        }
+
+        if (student.password.length < 6) {
+          throw new Error("Password minimal harus 6 karakter!");
+        }
+
+        let studentEmail = '';
+        if (student.username) {
+          studentEmail = `${student.username.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
+        } else {
+          studentEmail = `${student.name.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
+        }
+
+        const res = await createUserWithEmailAndPassword(secondaryAuth, studentEmail, student.password);
+
+        await setDoc(doc(db, 'students', res.user.uid), {
+          name: student.name.trim(),
+          class: student.class.trim(),
+          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim())}`,
+          bio: student.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
+          uid: res.user.uid,
+          password: student.password,
+          role: 'student'
+        });
+
+        await signOut(secondaryAuth);
+
+        setBulkStudents(prev => prev.map((s, idx) => idx === i ? { ...s, status: 'success', message: `Sukses! Login: ${studentEmail}` } : s));
+
+      } catch (err: any) {
+        console.error(`Gagal mendaftarkan siswa ${student.name}:`, err);
+        let errorMsg = err.message || 'Gagal mendaftarkan akun';
+        if (err.code === 'auth/email-already-in-use') {
+          errorMsg = 'Nama atau username sudah terdaftar!';
+        }
+        setBulkStudents(prev => prev.map((s, idx) => idx === i ? { ...s, status: 'error', message: errorMsg } : s));
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    setIsProcessingBulk(false);
+    alert("Proses unggah daftar siswa selesai!");
+  };
+
   const handleDeleteStudent = async (studentId: string, name: string) => {
     if (!window.confirm(`Yakin ingin menghapus siswa ${name}? Tindakan ini tidak dapat dibatalkan.`)) return;
     try {
@@ -590,12 +726,20 @@ export default function AdminPanel() {
                 <h2 className="font-['Fredoka_One'] text-3xl uppercase">Manajemen Akun Siswa</h2>
                 <p className="font-black text-gray-500 italic">Daftarkan akun dan lihat informasi login/password murid di sini.</p>
               </div>
-              <button 
-                onClick={() => setIsAddingStudent(true)} 
-                className="bg-[#4ECDC4] text-black px-6 py-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
-              >
-                <Plus size={20} /> DAFTAR SISWA BARU 🏫
-              </button>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setIsBulkUploadOpen(true)} 
+                  className="bg-[#FFD93D] text-black px-6 py-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
+                >
+                  <Upload size={16} /> UPLOAD DAFTAR SISWA 📈
+                </button>
+                <button 
+                  onClick={() => setIsAddingStudent(true)} 
+                  className="bg-[#4ECDC4] text-black px-6 py-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
+                >
+                  <Plus size={20} /> DAFTAR SISWA BARU 🏫
+                </button>
+              </div>
             </div>
 
             <div className="bg-white border-4 border-black rounded-[2rem] p-8 shadow-[8px_8px_0px_black]">
@@ -746,6 +890,150 @@ export default function AdminPanel() {
                       {isRegistering ? 'MEMPROSES REGISTRASI...' : 'DAFTARKAN SISWA ✨'}
                     </button>
                   </form>
+                </motion.div>
+              </div>
+            )}
+
+            {isBulkUploadOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm overflow-y-auto">
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  className="bg-white border-4 border-black p-10 rounded-[3rem] shadow-[16px_16px_0px_black] w-full max-w-4xl text-[#2D3436] my-8 max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="font-['Fredoka_One'] text-2xl uppercase">Upload Daftar Siswa Massal</h3>
+                      <p className="text-xs font-bold text-gray-500 mt-1">Upload data dari file Excel (.xlsx, .xls) atau CSV.</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setIsBulkUploadOpen(false);
+                        setBulkStudents([]);
+                      }} 
+                      className="bg-gray-100 p-2 rounded-xl border-2 border-black hover:bg-[#FF6B6B] hover:text-white transition-all"
+                      disabled={isProcessingBulk}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-[#FFE66D]/20 border-4 border-dashed border-black p-6 rounded-2xl">
+                    <div>
+                      <h4 className="font-bold text-sm uppercase mb-2">📋 Format Kolom yang Dibaca:</h4>
+                      <ul className="text-xs font-bold space-y-1 text-gray-700 list-disc pl-4">
+                        <li><strong>Nama Siswa</strong> (Nama lengkap siswa, digunakan sebagai nama login)</li>
+                        <li><strong>Kelas</strong> (Contoh: 3A, 4B)</li>
+                        <li><strong>Username login</strong> (Opsional, jika kosong akan digenerate otomatis dari nama)</li>
+                        <li><strong>Password</strong> (Minimal 6 karakter, contoh: codingkids123)</li>
+                      </ul>
+                    </div>
+                    <div className="flex flex-col justify-center items-center gap-4">
+                      <p className="text-xs font-bold text-center text-gray-600">Butuh contoh susunan kolom? Download template resmi:</p>
+                      <button 
+                        onClick={downloadTemplate}
+                        className="bg-[#FFE66D] text-black px-4 py-2.5 rounded-xl border-2 border-black font-black text-xs uppercase shadow-[4px_4px_0px_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <Download size={14} /> Download Template Excel
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 border-4 border-black p-6 rounded-2xl text-center relative hover:bg-gray-100/50 transition-colors">
+                      <input 
+                        type="file" 
+                        accept=".xlsx, .xls, .csv" 
+                        onChange={handleExcelFileChange}
+                        disabled={isProcessingBulk}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload size={32} className="text-[#FF8C32]" />
+                        <span className="font-black text-sm">Pilih atau Seret File Excel/CSV di sini</span>
+                        <span className="text-xs text-gray-400 font-bold">Mendukung format .xlsx, .xls, .csv</span>
+                      </div>
+                    </div>
+
+                    {bulkStudents.length > 0 && (
+                      <div className="border-4 border-black rounded-2xl overflow-hidden max-h-[300px] overflow-y-auto">
+                        <table className="w-full text-left font-bold text-xs bg-white">
+                          <thead className="bg-gray-100 sticky top-0 border-b-2 border-black">
+                            <tr>
+                              <th className="p-3">No</th>
+                              <th className="p-3">Nama Siswa</th>
+                              <th className="p-3">Kelas</th>
+                              <th className="p-3">Username Login</th>
+                              <th className="p-3">Password</th>
+                              <th className="p-3 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {bulkStudents.map((student, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50">
+                                <td className="p-3 text-gray-400 font-mono">{idx + 1}</td>
+                                <td className="p-3 font-black">{student.name}</td>
+                                <td className="p-3">
+                                  <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px]">Kelas {student.class}</span>
+                                </td>
+                                <td className="p-3 text-gray-500 font-mono">{student.username || '-'}</td>
+                                <td className="p-3 text-gray-500 font-mono">{student.password}</td>
+                                <td className="p-3 text-center">
+                                  {student.status === 'pending' && (
+                                    <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full border border-black text-[10px]">Menunggu</span>
+                                  )}
+                                  {student.status === 'processing' && (
+                                    <span className="bg-[#FFE66D] text-black px-2.5 py-1 rounded-full border border-black text-[10px] animate-pulse">Memproses</span>
+                                  )}
+                                  {student.status === 'success' && (
+                                    <span className="bg-[#6BCB77] text-white px-2.5 py-1 rounded-full border border-black text-[10px]" title={student.message}>Berhasil</span>
+                                  )}
+                                  {student.status === 'error' && (
+                                    <span className="bg-[#FF6B6B] text-white px-2.5 py-1 rounded-full border border-black text-[10px]" title={student.message}>Gagal</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {isProcessingBulk && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between font-black text-xs uppercase text-gray-500">
+                          <span>Mendaftarkan Akun Siswa...</span>
+                          <span>{bulkProgress.current} / {bulkProgress.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border-2 border-black">
+                          <div 
+                            className="bg-[#4ECDC4] h-full transition-all duration-300"
+                            style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        onClick={startBulkUpload}
+                        disabled={isProcessingBulk || bulkStudents.length === 0}
+                        className="flex-1 bg-[#4ECDC4] text-black py-4 rounded-xl border-4 border-black font-black text-lg shadow-[4px_4px_0px_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {isProcessingBulk ? 'SEDANG MEMPROSES...' : `MULAI IMPORT ${bulkStudents.length} SISWA 🚀`}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsBulkUploadOpen(false);
+                          setBulkStudents([]);
+                        }}
+                        disabled={isProcessingBulk}
+                        className="bg-gray-100 text-gray-500 px-6 py-4 rounded-xl border-4 border-black font-black text-xs uppercase cursor-pointer"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               </div>
             )}
