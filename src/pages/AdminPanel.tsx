@@ -10,6 +10,17 @@ import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPas
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
 
+function sanitizeUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[.,'"`()]/g, '')
+    .replace(/[\s-_]+/g, '.')
+    .replace(/[^a-z0-9.]/g, '')
+    .replace(/^\.+|\.+$/g, '')
+    .replace(/\.{2,}/g, '.');
+}
+
 export default function AdminPanel() {
   const { user, profile, loading } = useAuth();
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
@@ -321,7 +332,7 @@ export default function AdminPanel() {
 
     try {
       // Generate standard educational email from student name
-      const baseUsername = newStudent.name.toLowerCase().trim().replace(/\s+/g, '.');
+      const baseUsername = sanitizeUsername(newStudent.name);
       let studentEmail = `${baseUsername}@sdq.id`;
 
       // Use a secondary app instance so the currently signed-in admin session is completely unaffected
@@ -494,8 +505,8 @@ export default function AdminPanel() {
         }
 
         const baseUsername = student.username 
-          ? student.username.toLowerCase().trim().replace(/\s+/g, '.')
-          : student.name.toLowerCase().trim().replace(/\s+/g, '.');
+          ? sanitizeUsername(student.username)
+          : sanitizeUsername(student.name);
         let studentEmail = `${baseUsername}@sdq.id`;
 
         let signUpSuccess = false;
