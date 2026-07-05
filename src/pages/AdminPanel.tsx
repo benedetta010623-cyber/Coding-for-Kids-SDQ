@@ -558,7 +558,7 @@ export default function AdminPanel() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto p-10">
+      <main className="max-w-7xl mx-auto p-10">
         {activeTab === 'projects' ? (
           <div>
             <div className="mb-10 bg-white border-4 border-black p-8 rounded-[2rem] shadow-[12px_12px_0px_#4ECDC4]">
@@ -742,16 +742,16 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="bg-white border-4 border-black rounded-[2rem] p-8 shadow-[8px_8px_0px_black]">
+            <div className="bg-white border-4 border-black rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_black]">
                <div className="overflow-x-auto">
                  <table className="w-full text-left font-bold text-sm">
                    <thead>
                      <tr className="border-b-4 border-black text-sm uppercase tracking-widest text-gray-500">
-                       <th className="pb-4">Siswa</th>
-                       <th className="pb-4">Kelas</th>
-                       <th className="pb-4">Username Login (Nama Sesuai Absen)</th>
-                       <th className="pb-4">Password</th>
-                       <th className="pb-4 text-center">Aksi</th>
+                       <th className="pb-4 min-w-[220px]">Siswa</th>
+                       <th className="pb-4 min-w-[140px]">Kelas</th>
+                       <th className="pb-4 min-w-[300px]">Username Login (Nama Sesuai Absen)</th>
+                       <th className="pb-4 min-w-[160px]">Password</th>
+                       <th className="pb-4 text-center min-w-[100px]">Aksi</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y-2 divide-gray-100">
@@ -769,8 +769,8 @@ export default function AdminPanel() {
                              </div>
                            </td>
                            <td className="py-4">
-                             <span className="bg-[#FFE66D] border-2 border-black px-3 py-1 rounded-lg text-xs uppercase tracking-tight">
-                               Kelas {student.class}
+                             <span className="bg-[#FFE66D] text-black border-2 border-black px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider inline-block">
+                               {student.class ? (student.class.toLowerCase().startsWith('kelas') ? student.class : `Kelas ${student.class}`) : 'Tanpa Kelas'}
                              </span>
                            </td>
                            <td className="py-4">
@@ -974,7 +974,7 @@ export default function AdminPanel() {
                                 <td className="p-3 text-gray-400 font-mono">{idx + 1}</td>
                                 <td className="p-3 font-black">{student.name}</td>
                                 <td className="p-3">
-                                  <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px]">Kelas {student.class}</span>
+                                  <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px] font-bold text-gray-700">{student.class ? (student.class.toLowerCase().startsWith('kelas') ? student.class : `Kelas ${student.class}`) : 'Tanpa Kelas'}</span>
                                 </td>
                                 <td className="p-3 text-gray-500 font-mono">{student.username || '-'}</td>
                                 <td className="p-3 text-gray-500 font-mono">{student.password}</td>
