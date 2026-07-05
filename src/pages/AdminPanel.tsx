@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download } from 'lucide-react';
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
 
@@ -321,54 +321,78 @@ export default function AdminPanel() {
 
     try {
       // Generate standard educational email from student name
-      const studentEmail = `${newStudent.name.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
+      const baseUsername = newStudent.name.toLowerCase().trim().replace(/\s+/g, '.');
+      let studentEmail = `${baseUsername}@sdq.id`;
 
       // Use a secondary app instance so the currently signed-in admin session is completely unaffected
       const secondaryApp = getApps().find(app => app.name === 'StudentRegistrar') || initializeApp(firebaseConfig, 'StudentRegistrar');
       const secondaryAuth = getAuth(secondaryApp);
 
-      try {
-        const res = await createUserWithEmailAndPassword(secondaryAuth, studentEmail, newStudent.password);
-        
-        await setDoc(doc(db, 'students', res.user.uid), {
-          name: newStudent.name.trim(),
-          class: newStudent.class,
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newStudent.name.trim())}`,
-          bio: newStudent.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
-          uid: res.user.uid,
-          password: newStudent.password, // Save password so admin can view/look up when forgotten
-          role: 'student'
-        });
+      let signUpSuccess = false;
+      let attempt = 0;
+      let currentEmail = studentEmail;
+      let finalUid = '';
 
-        await signOut(secondaryAuth);
-
-        setRegisterStatus({ 
-          type: 'success', 
-          message: `Siswa ${newStudent.name.trim()} berhasil didaftarkan! Email login: ${studentEmail}` 
-        });
-
-        setNewStudent({
-          name: '',
-          class: '3A',
-          password: 'codingkids123',
-          bio: "Cita-citaku ingin menjadi programmer hebat!"
-        });
-        
-        setTimeout(() => {
-          setIsAddingStudent(false);
-          setRegisterStatus({ type: '', message: '' });
-        }, 3000);
-
-      } catch (authError: any) {
-        if (authError.code === 'auth/email-already-in-use') {
-          setRegisterStatus({ 
-            type: 'error', 
-            message: 'Nama siswa ini sudah terdaftar sebelumnya!' 
-          });
-        } else {
-          setRegisterStatus({ type: 'error', message: authError.message || 'Gagal mendaftarkan akun siswa.' });
+      while (!signUpSuccess && attempt < 10) {
+        try {
+          const res = await createUserWithEmailAndPassword(secondaryAuth, currentEmail, newStudent.password);
+          finalUid = res.user.uid;
+          studentEmail = currentEmail;
+          signUpSuccess = true;
+        } catch (authError: any) {
+          if (authError.code === 'auth/email-already-in-use') {
+            try {
+              // Attempt to sign in with the student's email and password to see if we can reuse the existing account
+              const signInRes = await signInWithEmailAndPassword(secondaryAuth, currentEmail, newStudent.password);
+              finalUid = signInRes.user.uid;
+              studentEmail = currentEmail;
+              signUpSuccess = true;
+            } catch (signInErr: any) {
+              // If credentials don't match, increment username and try again
+              attempt++;
+              currentEmail = `${baseUsername}.${attempt}@sdq.id`;
+            }
+          } else {
+            throw authError;
+          }
         }
       }
+
+      if (!signUpSuccess) {
+        throw new Error("Gagal mendaftarkan akun siswa setelah beberapa percobaan karena duplikasi.");
+      }
+
+      await setDoc(doc(db, 'students', finalUid), {
+        name: newStudent.name.trim(),
+        class: newStudent.class,
+        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newStudent.name.trim())}`,
+        bio: newStudent.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
+        uid: finalUid,
+        password: newStudent.password, // Save password so admin can view/look up when forgotten
+        role: 'student'
+      });
+
+      await signOut(secondaryAuth);
+
+      setRegisterStatus({ 
+        type: 'success', 
+        message: attempt > 0 
+          ? `Siswa ${newStudent.name.trim()} didaftarkan! Email login: ${studentEmail} (disesuaikan karena duplikasi)`
+          : `Siswa ${newStudent.name.trim()} berhasil didaftarkan! Email login: ${studentEmail}` 
+      });
+
+      setNewStudent({
+        name: '',
+        class: '3A',
+        password: 'codingkids123',
+        bio: "Cita-citaku ingin menjadi programmer hebat!"
+      });
+      
+      setTimeout(() => {
+        setIsAddingStudent(false);
+        setRegisterStatus({ type: '', message: '' });
+      }, 3000);
+
     } catch (err: any) {
       console.error("Student registry error:", err);
       setRegisterStatus({ type: 'error', message: err.message || 'Terjadi kesalahan sistem.' });
@@ -469,35 +493,66 @@ export default function AdminPanel() {
           throw new Error("Password minimal harus 6 karakter!");
         }
 
-        let studentEmail = '';
-        if (student.username) {
-          studentEmail = `${student.username.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
-        } else {
-          studentEmail = `${student.name.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
+        const baseUsername = student.username 
+          ? student.username.toLowerCase().trim().replace(/\s+/g, '.')
+          : student.name.toLowerCase().trim().replace(/\s+/g, '.');
+        let studentEmail = `${baseUsername}@sdq.id`;
+
+        let signUpSuccess = false;
+        let attempt = 0;
+        let currentEmail = studentEmail;
+        let finalUid = '';
+
+        while (!signUpSuccess && attempt < 10) {
+          try {
+            const res = await createUserWithEmailAndPassword(secondaryAuth, currentEmail, student.password);
+            finalUid = res.user.uid;
+            studentEmail = currentEmail;
+            signUpSuccess = true;
+          } catch (authErr: any) {
+            if (authErr.code === 'auth/email-already-in-use') {
+              try {
+                // Attempt to sign in to see if we can reuse the existing account
+                const signInRes = await signInWithEmailAndPassword(secondaryAuth, currentEmail, student.password);
+                finalUid = signInRes.user.uid;
+                studentEmail = currentEmail;
+                signUpSuccess = true;
+              } catch (signInErr: any) {
+                // If credentials don't match, increment username and try again
+                attempt++;
+                currentEmail = `${baseUsername}.${attempt}@sdq.id`;
+              }
+            } else {
+              throw authErr;
+            }
+          }
         }
 
-        const res = await createUserWithEmailAndPassword(secondaryAuth, studentEmail, student.password);
+        if (!signUpSuccess) {
+          throw new Error("Gagal mendaftarkan akun siswa setelah beberapa percobaan karena duplikasi.");
+        }
 
-        await setDoc(doc(db, 'students', res.user.uid), {
+        await setDoc(doc(db, 'students', finalUid), {
           name: student.name.trim(),
           class: student.class.trim(),
           avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim())}`,
           bio: student.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
-          uid: res.user.uid,
+          uid: finalUid,
           password: student.password,
           role: 'student'
         });
 
         await signOut(secondaryAuth);
 
-        setBulkStudents(prev => prev.map((s, idx) => idx === i ? { ...s, status: 'success', message: `Sukses! Login: ${studentEmail}` } : s));
+        setBulkStudents(prev => prev.map((s, idx) => idx === i ? { 
+          ...s, 
+          status: 'success', 
+          message: attempt > 0 ? `Sukses! Login: ${studentEmail}` : `Sukses! Login: ${studentEmail}` 
+        } : s));
 
       } catch (err: any) {
         console.error(`Gagal mendaftarkan siswa ${student.name}:`, err);
         let errorMsg = err.message || 'Gagal mendaftarkan akun';
-        if (err.code === 'auth/email-already-in-use') {
-          errorMsg = 'Nama atau username sudah terdaftar!';
-        }
         setBulkStudents(prev => prev.map((s, idx) => idx === i ? { ...s, status: 'error', message: errorMsg } : s));
       }
 
