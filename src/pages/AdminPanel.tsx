@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, where, updateDoc, doc, onSnapshot, orderBy, addDoc, deleteDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download, Pencil } from 'lucide-react';
+import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download, Pencil, RefreshCw, Grid, List } from 'lucide-react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -37,6 +37,10 @@ export default function AdminPanel() {
   const [editingProject, setEditingProject] = useState<any | null>(null);
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [curriculum, setCurriculum] = useState<any[]>([]);
+  
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
+  const [studentViewMode, setStudentViewMode] = useState<'all' | 'grouped'>('all');
+  const [isSyncingAvatars, setIsSyncingAvatars] = useState(false);
 
   const pendingProjects = allProjects.filter(p => p.status === 'pending');
   const filteredProjects = allProjects.filter(p => {
@@ -675,6 +679,38 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSyncAvatars = async () => {
+    if (students.length === 0) {
+      alert("Tidak ada data siswa untuk disinkronkan!");
+      return;
+    }
+    
+    if (!window.confirm(`Yakin ingin menyinkronkan avatar ${students.length} siswa sesuai jenis kelamin mereka? Tindakan ini akan memperbarui foto profil agar selaras dengan data gender.`)) {
+      return;
+    }
+
+    setIsSyncingAvatars(true);
+    let successCount = 0;
+    try {
+      for (const student of students) {
+        const gender = student.gender || 'L';
+        const correctAvatarUrl = getAvatarUrl(student.name, gender);
+        if (student.avatarUrl !== correctAvatarUrl) {
+          await updateDoc(doc(db, 'students', student.id), {
+            avatarUrl: correctAvatarUrl
+          });
+          successCount++;
+        }
+      }
+      alert(`Sinkronisasi selesai! Berhasil memperbarui ${successCount} avatar siswa.`);
+    } catch (err: any) {
+      console.error("Gagal menyinkronkan avatar:", err);
+      alert("Gagal menyinkronkan avatar: " + err.message);
+    } finally {
+      setIsSyncingAvatars(false);
+    }
+  };
+
   if (loading || isChecking) return <div className="min-h-screen flex items-center justify-center font-black">MEMERIKSA AKSES ADMIN...</div>;
   if (!isAdmin) return null;
 
@@ -927,116 +963,273 @@ export default function AdminPanel() {
           </div>
         ) : (
           <div>
-            <div className="flex justify-between items-center mb-10">
+            {/* Header with Title and Sync Action */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 bg-white border-4 border-black p-8 rounded-[2rem] shadow-[8px_8px_0px_black]">
               <div>
                 <h2 className="font-['Fredoka_One'] text-3xl uppercase">Manajemen Akun Siswa</h2>
-                <p className="font-black text-gray-500 italic">Daftarkan akun dan lihat informasi login/password murid di sini.</p>
+                <p className="font-black text-gray-500 italic">Daftarkan akun baru, saring/kelompokkan per kelas, dan sinkronkan avatar gender siswa.</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+                <button 
+                  onClick={handleSyncAvatars}
+                  disabled={isSyncingAvatars}
+                  className="bg-[#A0C4FF] text-black px-5 py-4 rounded-xl border-4 border-black shadow-[4px_4px_0px_black] hover:shadow-none transition-all flex items-center justify-center gap-2 font-black uppercase text-xs grow md:grow-0"
+                  title="Sinkronkan Avatar Sesuai Gender"
+                >
+                  <RefreshCw size={16} className={isSyncingAvatars ? "animate-spin" : ""} /> 
+                  {isSyncingAvatars ? "SINKRONISASI..." : "SINKRONKAN AVATAR 👤"}
+                </button>
                 <button 
                   onClick={() => setIsBulkUploadOpen(true)} 
-                  className="bg-[#FFD93D] text-black px-6 py-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
+                  className="bg-[#FFD93D] text-black px-5 py-4 rounded-xl border-4 border-black shadow-[4px_4px_0px_black] hover:shadow-none transition-all flex items-center justify-center gap-2 font-black uppercase text-xs grow md:grow-0"
                 >
-                  <Upload size={16} /> UPLOAD DAFTAR SISWA 📈
+                  <Upload size={14} /> UPLOAD DAFTAR SISWA 📈
                 </button>
                 <button 
                   onClick={() => setIsAddingStudent(true)} 
-                  className="bg-[#4ECDC4] text-black px-6 py-4 rounded-xl border-4 border-black shadow-[6px_6px_0px_black] hover:shadow-none transition-all flex items-center gap-2 font-black uppercase text-sm"
+                  className="bg-[#4ECDC4] text-black px-5 py-4 rounded-xl border-4 border-black shadow-[4px_4px_0px_black] hover:shadow-none transition-all flex items-center justify-center gap-2 font-black uppercase text-xs grow md:grow-0"
                 >
-                  <Plus size={20} /> DAFTAR SISWA BARU 🏫
+                  <Plus size={16} /> DAFTAR SISWA BARU 🏫
                 </button>
               </div>
             </div>
 
-            <div className="bg-white border-4 border-black rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_black]">
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left font-bold text-sm">
-                   <thead>
-                     <tr className="border-b-4 border-black text-sm uppercase tracking-widest text-gray-500">
-                       <th className="pb-4 min-w-[220px]">Siswa</th>
-                       <th className="pb-4 min-w-[140px]">Kelas</th>
-                       <th className="pb-4 min-w-[300px]">Username Login (Nama Sesuai Absen)</th>
-                       <th className="pb-4 min-w-[160px]">Password</th>
-                       <th className="pb-4 text-center min-w-[100px]">Aksi</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y-2 divide-gray-100">
-                     {students.map((student) => {
-                       const usernameExample = student.name;
-                       const emailLogin = `${student.name.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
-                       const isRevealed = revealPasswords[student.id];
-                       return (
-                         <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                           <td className="py-4 flex items-center gap-3">
-                             <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name}`} alt={student.name} className="w-10 h-10 rounded-full border-2 border-black" />
-                             <div>
-                               <p className="font-black font-['Fredoka_One'] text-base">{student.name}</p>
+            {/* Organization Controls Panel */}
+            <div className="bg-white border-4 border-black rounded-[2rem] p-6 mb-8 shadow-[6px_6px_0px_black] flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-dashed border-black pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm uppercase bg-black text-white px-2.5 py-1 rounded-lg">PENGORGANISASIAN DATA</span>
+                </div>
+                {/* View Mode Switcher */}
+                <div className="flex bg-gray-100 p-1.5 border-2 border-black rounded-xl self-start sm:self-auto">
+                  <button
+                    onClick={() => setStudentViewMode('all')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-black text-xs transition-all ${studentViewMode === 'all' ? 'bg-[#4ECDC4] text-black border-2 border-black shadow-[2px_2px_0px_black]' : 'text-gray-500 border-2 border-transparent hover:text-black'}`}
+                  >
+                    <List size={14} /> DAFTAR SEMUA
+                  </button>
+                  <button
+                    onClick={() => setStudentViewMode('grouped')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-black text-xs transition-all ${studentViewMode === 'grouped' ? 'bg-[#6BCB77] text-white border-2 border-black shadow-[2px_2px_0px_black]' : 'text-gray-500 border-2 border-transparent hover:text-black'}`}
+                  >
+                    <Grid size={14} /> KELOMPOKKAN PER KELAS
+                  </button>
+                </div>
+              </div>
+
+              {/* Class Filter Tabs (Only shown in Flat List Mode) */}
+              {studentViewMode === 'all' && (() => {
+                const availableClasses = Array.from(new Set(students.map(s => {
+                  let c = s.class || '';
+                  c = c.trim();
+                  return c.replace(/^kelas\s+/i, '');
+                }).filter(Boolean))) as string[];
+                availableClasses.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-black text-xs uppercase tracking-wider text-gray-400 mr-2">Saring Kelas:</span>
+                    <button
+                      onClick={() => setSelectedClassFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs transition-all ${selectedClassFilter === 'all' ? 'bg-[#FFE66D] text-black shadow-[2px_2px_0px_black]' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      SEMUA KELAS ({students.length})
+                    </button>
+                    {availableClasses.map((className) => {
+                      const count = students.filter(s => (s.class || '').trim().replace(/^kelas\s+/i, '').toLowerCase() === className.toLowerCase()).length;
+                      return (
+                        <button
+                          key={className}
+                          onClick={() => setSelectedClassFilter(className)}
+                          className={`px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs transition-all ${selectedClassFilter === className ? 'bg-[#FFE66D] text-black shadow-[2px_2px_0px_black]' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                        >
+                          KELAS {className.toUpperCase()} ({count})
+                        </button>
+                      );
+                    })}
+                    {students.some(s => !(s.class || '').trim()) && (
+                      <button
+                        onClick={() => setSelectedClassFilter('none')}
+                        className={`px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs transition-all ${selectedClassFilter === 'none' ? 'bg-[#FF6B6B] text-white shadow-[2px_2px_0px_black]' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        TANPA KELAS ({students.filter(s => !(s.class || '').trim()).length})
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {studentViewMode === 'grouped' && (
+                <div className="text-xs font-black text-gray-500 italic flex items-center gap-1.5 bg-[#FFF9F2] p-3 rounded-lg border-2 border-black">
+                  <span>💡 Data otomatis dikelompokkan berdasarkan kelas masing-masing siswa.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Student rendering block helper */}
+            {(() => {
+              const renderStudentTable = (studentList: any[]) => {
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-bold text-sm">
+                      <thead>
+                        <tr className="border-b-4 border-black text-sm uppercase tracking-widest text-gray-500">
+                          <th className="pb-4 min-w-[220px]">Siswa</th>
+                          <th className="pb-4 min-w-[140px]">Kelas</th>
+                          <th className="pb-4 min-w-[300px]">Username Login (Nama Sesuai Absen)</th>
+                          <th className="pb-4 min-w-[160px]">Password</th>
+                          <th className="pb-4 text-center min-w-[100px]">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y-2 divide-gray-100">
+                        {studentList.map((student) => {
+                          const usernameExample = student.name;
+                          const emailLogin = `${student.name.toLowerCase().trim().replace(/\s+/g, '.')}@sdq.id`;
+                          const isRevealed = revealPasswords[student.id];
+                          return (
+                            <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="py-4 flex items-center gap-3">
+                                <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name}`} alt={student.name} className="w-10 h-10 rounded-full border-2 border-black" />
+                                <div>
+                                  <p className="font-black font-['Fredoka_One'] text-base">{student.name}</p>
                                   {student.gender && (
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border-2 border-black select-none ${student.gender === 'P' ? 'bg-[#FF6B6B] text-white' : 'bg-[#4ECDC4] text-black'}`}>
                                       {student.gender === 'P' ? 'P 👧' : 'L 👦'}
                                     </span>
                                   )}
-                               <span className="text-[10px] text-gray-400 block font-mono">{student.id}</span>
-                             </div>
-                           </td>
-                           <td className="py-4">
-                             <span className="bg-[#FFE66D] text-black border-2 border-black px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider inline-block">
-                               {student.class ? (student.class.toLowerCase().startsWith('kelas') ? student.class : `Kelas ${student.class}`) : 'Tanpa Kelas'}
-                             </span>
-                           </td>
-                           <td className="py-4">
-                             <div>
-                               <p className="font-black text-[#FF8C32] select-all cursor-pointer">{usernameExample}</p>
-                               <span className="text-xs text-gray-400 font-normal">atau email: {emailLogin}</span>
-                             </div>
-                           </td>
-                           <td className="py-4">
-                             <div className="flex items-center gap-2">
-                               <input 
-                                 type={isRevealed ? "text" : "password"} 
-                                 value={student.password || "codingkids123"} 
-                                 readOnly 
-                                 className="bg-transparent border-none font-black text-sm outline-none w-32 tracking-wider"
-                               />
-                               <button 
-                                 onClick={() => setRevealPasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
-                                 className="text-gray-400 hover:text-black transition-colors"
-                                 title={isRevealed ? "Sembunyikan" : "Tampilkan"}
-                               >
-                                 {isRevealed ? <EyeOff size={16} /> : <Eye size={16} />}
-                               </button>
-                             </div>
-                           </td>
-                           <td className="py-4 text-center">
-                             <button 
-                               onClick={() => setEditingStudent(student)}
-                               className="p-2.5 bg-[#4ECDC4] text-black border-2 border-black rounded-xl hover:bg-[#3dbdb3] transition-all mr-2"
-                               title="Edit Siswa"
-                             >
-                               <Pencil size={16} />
-                             </button>
-                             <button 
-                               onClick={() => handleDeleteStudent(student.id, student.name)}
-                               className="p-2.5 bg-[#FF6B6B] text-white border-2 border-black rounded-xl hover:bg-[#FF4D4D] transition-all"
-                               title="Hapus Siswa"
-                             >
-                               <Trash2 size={16} />
-                             </button>
-                           </td>
-                         </tr>
-                       );
-                     })}
-                     {students.length === 0 && (
-                       <tr>
-                         <td colSpan={5} className="text-center py-10 text-gray-400 italic">Belum ada murid terdaftar.</td>
-                       </tr>
-                     )}
-                   </tbody>
-                 </table>
-               </div>
-            </div>
+                                  <span className="text-[10px] text-gray-400 block font-mono">{student.id}</span>
+                                </div>
+                              </td>
+                              <td className="py-4">
+                                <span className="bg-[#FFE66D] text-black border-2 border-black px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider inline-block">
+                                  {student.class ? (student.class.toLowerCase().startsWith('kelas') ? student.class : `Kelas ${student.class}`) : 'Tanpa Kelas'}
+                                </span>
+                              </td>
+                              <td className="py-4">
+                                <div>
+                                  <p className="font-black text-[#FF8C32] select-all cursor-pointer">{usernameExample}</p>
+                                  <span className="text-xs text-gray-400 font-normal">atau email: {emailLogin}</span>
+                                </div>
+                              </td>
+                              <td className="py-4">
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type={isRevealed ? "text" : "password"} 
+                                    value={student.password || "codingkids123"} 
+                                    readOnly 
+                                    className="bg-transparent border-none font-black text-sm outline-none w-32 tracking-wider"
+                                  />
+                                  <button 
+                                    onClick={() => setRevealPasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                                    className="text-gray-400 hover:text-black transition-colors"
+                                    title={isRevealed ? "Sembunyikan" : "Tampilkan"}
+                                  >
+                                    {isRevealed ? <EyeOff size={16} /> : <Eye size={16} />}
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="py-4 text-center">
+                                <button 
+                                  onClick={() => setEditingStudent(student)}
+                                  className="p-2.5 bg-[#4ECDC4] text-black border-2 border-black rounded-xl hover:bg-[#3dbdb3] transition-all mr-2"
+                                  title="Edit Siswa"
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteStudent(student.id, student.name)}
+                                  className="p-2.5 bg-[#FF6B6B] text-white border-2 border-black rounded-xl hover:bg-[#FF4D4D] transition-all"
+                                  title="Hapus Siswa"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {studentList.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="text-center py-10 text-gray-400 italic">Belum ada murid di kategori ini.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              };
 
-            {isAddingStudent && (
+              // Flat/All View Mode
+              if (studentViewMode === 'all') {
+                const filteredStudents = students.filter(student => {
+                  if (selectedClassFilter === 'all') return true;
+                  const sClass = (student.class || '').trim();
+                  if (selectedClassFilter === 'none') {
+                    return !sClass;
+                  }
+                  const cleanSClass = sClass.replace(/^kelas\s+/i, '').trim().toUpperCase();
+                  return cleanSClass === selectedClassFilter.toUpperCase();
+                });
+
+                return (
+                  <div className="bg-white border-4 border-black rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_black]">
+                    {renderStudentTable(filteredStudents)}
+                  </div>
+                );
+              }
+
+              // Grouped View Mode
+              const groupedStudentsMap: { [key: string]: any[] } = {};
+              students.forEach(student => {
+                let sClass = (student.class || '').trim();
+                let displayClass = sClass;
+                if (!sClass) {
+                  displayClass = 'Tanpa Kelas';
+                } else if (!sClass.toLowerCase().startsWith('kelas')) {
+                  displayClass = `Kelas ${sClass}`;
+                }
+                if (!groupedStudentsMap[displayClass]) {
+                  groupedStudentsMap[displayClass] = [];
+                }
+                groupedStudentsMap[displayClass].push(student);
+              });
+
+              const sortedClassNames = Object.keys(groupedStudentsMap).sort((a, b) => {
+                if (a === 'Tanpa Kelas') return 1;
+                if (b === 'Tanpa Kelas') return -1;
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+              });
+
+              if (students.length === 0) {
+                return (
+                  <div className="bg-white border-4 border-black rounded-[2rem] p-10 text-center text-gray-400 italic">
+                    Belum ada murid terdaftar.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-10">
+                  {sortedClassNames.map((className) => {
+                    const studentList = groupedStudentsMap[className];
+                    return (
+                      <div key={className} className="bg-white border-4 border-black rounded-[2rem] p-8 md:p-10 shadow-[8px_8px_0px_black] relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b-4 border-black pb-4">
+                          <h3 className="font-['Fredoka_One'] text-2xl uppercase flex items-center gap-2">
+                            <span>🎒</span> {className.toUpperCase()}
+                          </h3>
+                          <span className="bg-[#4ECDC4] text-black border-2 border-black px-4 py-1.5 rounded-full text-xs font-black uppercase">
+                            Total: {studentList.length} Murid
+                          </span>
+                        </div>
+                        {renderStudentTable(studentList)}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+          {isAddingStudent && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white border-4 border-black p-10 rounded-[3rem] shadow-[16px_16px_0px_black] w-full max-w-xl text-[#2D3436]">
                   <div className="flex justify-between items-center mb-6">
