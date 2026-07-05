@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, where, updateDoc, doc, onSnapshot, orderBy, addDoc, deleteDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download } from 'lucide-react';
+import { ShieldCheck, Check, X, ExternalLink, Clock, User, BookOpen, Plus, Trash2, Users, Key, Eye, EyeOff, Upload, Download, Pencil } from 'lucide-react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -32,8 +32,17 @@ function getAvatarUrl(name: string, gender: 'L' | 'P'): string {
 
 export default function AdminPanel() {
   const { user, profile, loading } = useAuth();
-  const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [projectFilter, setProjectFilter] = useState<'all' | 'pending' | 'approved'>('pending');
+  const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [curriculum, setCurriculum] = useState<any[]>([]);
+
+  const pendingProjects = allProjects.filter(p => p.status === 'pending');
+  const filteredProjects = allProjects.filter(p => {
+    if (projectFilter === 'all') return true;
+    return p.status === projectFilter;
+  });
   const [activeTab, setActiveTab] = useState<'projects' | 'curriculum' | 'gallery' | 'students'>('projects');
   const [gallery, setGallery] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
@@ -103,9 +112,9 @@ export default function AdminPanel() {
   useEffect(() => {
     if (isAdmin) {
       // Projects Subscribe
-      const qProjects = query(collection(db, 'projects'), where('status', '==', 'pending'), orderBy('createdAt', 'asc'));
+      const qProjects = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
       const unsubProjects = onSnapshot(qProjects, (snapshot) => {
-        setPendingProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setAllProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
 
       // Curriculum Subscribe
@@ -452,9 +461,13 @@ export default function AdminPanel() {
         
         const mappedStudents = jsonData.map((row: any, index: number) => {
           const findValue = (possibleKeys: string[]) => {
-            const keyFound = Object.keys(row).find(k => 
-              possibleKeys.some(pk => k.toLowerCase().replace(/\s+/g, '') === pk.toLowerCase().replace(/\s+/g, ''))
-            );
+            const keyFound = Object.keys(row).find(k => {
+              const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+              return possibleKeys.some(pk => {
+                const cleanPK = pk.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return cleanK === cleanPK || cleanK.includes(cleanPK) || cleanPK.includes(cleanK);
+              });
+            });
             return keyFound ? String(row[keyFound]).trim() : '';
           };
 
@@ -608,6 +621,60 @@ export default function AdminPanel() {
     }
   };
 
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+    try {
+      const updatedGender = editingStudent.gender || 'L';
+      const updatedAvatarUrl = getAvatarUrl(editingStudent.name, updatedGender);
+      
+      await updateDoc(doc(db, 'students', editingStudent.id), {
+        name: editingStudent.name.trim(),
+        class: editingStudent.class.trim(),
+        gender: updatedGender,
+        avatarUrl: updatedAvatarUrl,
+        bio: editingStudent.bio?.trim() || "Cita-citaku ingin menjadi programmer hebat!",
+        password: editingStudent.password
+      });
+      
+      setEditingStudent(null);
+      alert("Data siswa berhasil diperbarui!");
+    } catch (err: any) {
+      console.error("Error updating student:", err);
+      alert("Gagal memperbarui data siswa: " + err.message);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!window.confirm("Yakin ingin menghapus karya ini secara permanen?")) return;
+    try {
+      await deleteDoc(doc(db, 'projects', projectId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `projects/${projectId}`);
+    }
+  };
+
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    try {
+      await updateDoc(doc(db, 'projects', editingProject.id), {
+        title: editingProject.title.trim(),
+        description: editingProject.description.trim(),
+        category: editingProject.category,
+        imageUrl: editingProject.imageUrl.trim(),
+        link: editingProject.link.trim(),
+        status: editingProject.status
+      });
+      
+      setEditingProject(null);
+      alert("Data karya siswa berhasil diperbarui!");
+    } catch (err: any) {
+      console.error("Error updating project:", err);
+      alert("Gagal memperbarui karya: " + err.message);
+    }
+  };
+
   if (loading || isChecking) return <div className="min-h-screen flex items-center justify-center font-black">MEMERIKSA AKSES ADMIN...</div>;
   if (!isAdmin) return null;
 
@@ -653,13 +720,42 @@ export default function AdminPanel() {
         {activeTab === 'projects' ? (
           <div>
             <div className="mb-10 bg-white border-4 border-black p-8 rounded-[2rem] shadow-[12px_12px_0px_#4ECDC4]">
-              <h2 className="font-['Fredoka_One'] text-2xl mb-2 uppercase">Antrian Persetujuan</h2>
-              <p className="font-black text-gray-500 italic">Ada {pendingProjects.length} karya yang butuh persetujuan darimu.</p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <h2 className="font-['Fredoka_One'] text-2xl mb-2 uppercase">Manajemen Karya Siswa</h2>
+                  <p className="font-black text-gray-500 italic">
+                    Ada {allProjects.filter(p => p.status === 'pending').length} karya pending dan {allProjects.filter(p => p.status === 'approved').length} karya disetujui.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => setProjectFilter('pending')}
+                    className={`px-4 py-2 rounded-xl font-black text-xs border-2 border-black transition-all ${projectFilter === 'pending' ? 'bg-[#FFE66D] text-black shadow-[3px_3px_0px_black]' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    PENDING ({allProjects.filter(p => p.status === 'pending').length})
+                  </button>
+                  <button 
+                    onClick={() => setProjectFilter('approved')}
+                    className={`px-4 py-2 rounded-xl font-black text-xs border-2 border-black transition-all ${projectFilter === 'approved' ? 'bg-[#6BCB77] text-white shadow-[3px_3px_0px_black]' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    DISETUJUI ({allProjects.filter(p => p.status === 'approved').length})
+                  </button>
+                  <button 
+                    onClick={() => setProjectFilter('all')}
+                    className={`px-4 py-2 rounded-xl font-black text-xs border-2 border-black transition-all ${projectFilter === 'all' ? 'bg-[#4ECDC4] text-black shadow-[3px_3px_0px_black]' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    SEMUA ({allProjects.length})
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-8">
-              {pendingProjects.map((project) => (
-                <motion.div layout key={project.id} className="bg-white border-4 border-black rounded-[2.5rem] p-8 shadow-[8px_8px_0px_black] flex flex-col md:flex-row gap-8 items-start">
+              {filteredProjects.map((project) => (
+                <motion.div layout key={project.id} className="bg-white border-4 border-black rounded-[2.5rem] p-8 shadow-[8px_8px_0px_black] flex flex-col md:flex-row gap-8 items-start relative">
+                  <span className={`absolute top-4 right-4 border-2 border-black px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${project.status === 'approved' ? 'bg-[#6BCB77] text-white' : 'bg-[#FFE66D] text-black'}`}>
+                    {project.status === 'approved' ? 'Disetujui' : 'Pending'}
+                  </span>
                   <div className="w-full md:w-64 h-40 bg-gray-100 border-4 border-black rounded-2xl overflow-hidden shrink-0">
                     <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover" />
                   </div>
@@ -672,21 +768,40 @@ export default function AdminPanel() {
                     <p className="text-sm font-black text-gray-500 mb-6 italic">"{project.description}"</p>
                     <div className="flex flex-wrap gap-4">
                       <a href={project.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 rounded-xl font-black text-xs shadow-[4px_4px_0px_black] hover:shadow-none transition-all"><ExternalLink size={14} /> CEK PROJECT</a>
+                      
+                      {project.status === 'pending' && (
+                        <button 
+                          type="button"
+                          onClick={() => handleApprove(project.id)} 
+                          className="flex items-center gap-2 bg-[#6BCB77] text-white border-4 border-black px-6 py-2 rounded-xl font-black text-xs shadow-[4px_4px_0px_black] hover:shadow-none transition-all"
+                        >
+                          <Check size={16} /> SETUJUI
+                        </button>
+                      )}
+
                       <button 
                         type="button"
-                        onClick={() => handleApprove(project.id)} 
-                        className="flex items-center gap-2 bg-[#6BCB77] text-white border-4 border-black px-6 py-2 rounded-xl font-black text-xs shadow-[4px_4px_0px_black] hover:shadow-none transition-all"
+                        onClick={() => setEditingProject(project)} 
+                        className="flex items-center gap-2 bg-[#4ECDC4] text-black border-4 border-black px-4 py-2 rounded-xl font-black text-xs shadow-[4px_4px_0px_black] hover:shadow-none transition-all"
                       >
-                        <Check size={16} /> SETUJUI
+                        <Pencil size={14} /> EDIT
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteProject(project.id)} 
+                        className="flex items-center gap-2 bg-[#FF6B6B] text-white border-4 border-black px-4 py-2 rounded-xl font-black text-xs shadow-[4px_4px_0px_black] hover:shadow-none transition-all"
+                      >
+                        <Trash2 size={14} /> HAPUS
                       </button>
                     </div>
                   </div>
                 </motion.div>
               ))}
-              {pendingProjects.length === 0 && (
+              {filteredProjects.length === 0 && (
                 <div className="text-center py-20 bg-white border-4 border-dashed border-black rounded-[3rem] opacity-30">
                    <Clock size={64} className="mx-auto mb-4" />
-                   <p className="text-2xl font-black">Tidak ada antrian persetujuan.</p>
+                   <p className="text-2xl font-black">Tidak ada karya di kategori ini.</p>
                 </div>
               )}
             </div>
@@ -893,6 +1008,13 @@ export default function AdminPanel() {
                              </div>
                            </td>
                            <td className="py-4 text-center">
+                             <button 
+                               onClick={() => setEditingStudent(student)}
+                               className="p-2.5 bg-[#4ECDC4] text-black border-2 border-black rounded-xl hover:bg-[#3dbdb3] transition-all mr-2"
+                               title="Edit Siswa"
+                             >
+                               <Pencil size={16} />
+                             </button>
                              <button 
                                onClick={() => handleDeleteStudent(student.id, student.name)}
                                className="p-2.5 bg-[#FF6B6B] text-white border-2 border-black rounded-xl hover:bg-[#FF4D4D] transition-all"
@@ -1164,6 +1286,213 @@ export default function AdminPanel() {
         )
         }
       </main>
+
+      {editingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white border-4 border-black w-full max-w-2xl rounded-[3rem] shadow-[16px_16px_0px_black] p-10 max-h-[90vh] overflow-y-auto text-[#2D3436]"
+          >
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="font-['Fredoka_One'] text-3xl uppercase">Edit Karya Siswa</h3>
+              <button 
+                onClick={() => setEditingProject(null)}
+                className="bg-[#FF6B6B] text-white p-2 rounded-xl border-2 border-black shadow-[4px_4px_0px_black] hover:shadow-none transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProject} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="font-black text-sm uppercase tracking-widest pl-2">Judul Karya</label>
+                  <input 
+                    type="text" required
+                    value={editingProject.title}
+                    onChange={e => setEditingProject({...editingProject, title: e.target.value})}
+                    placeholder="Contoh: Game Petualangan Kucing"
+                    className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="font-black text-sm uppercase tracking-widest pl-2">Kategori</label>
+                  <select 
+                    value={editingProject.category}
+                    onChange={e => setEditingProject({...editingProject, category: e.target.value})}
+                    className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm"
+                  >
+                    <option value="Visual Programming">Visual Programming (Scratch)</option>
+                    <option value="Web Development">Web Development (HTML/CSS/JS)</option>
+                    <option value="Game Development">Game Development</option>
+                    <option value="Digital Art">Digital Art / Paint</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-black text-sm uppercase tracking-widest pl-2">Deskripsi Singkat</label>
+                <textarea 
+                  required
+                  value={editingProject.description}
+                  onChange={e => setEditingProject({...editingProject, description: e.target.value})}
+                  placeholder="Ceritakan tentang game/aplikasi yang kamu buat..."
+                  className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm h-32"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="font-black text-sm uppercase tracking-widest pl-2">Link Gambar Cover (URL)</label>
+                  <input 
+                    type="url" required
+                    value={editingProject.imageUrl}
+                    onChange={e => setEditingProject({...editingProject, imageUrl: e.target.value})}
+                    placeholder="https://images.unsplash.com/... atau screenshot"
+                    className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="font-black text-sm uppercase tracking-widest pl-2">Link Project (URL)</label>
+                  <input 
+                    type="url" required
+                    value={editingProject.link}
+                    onChange={e => setEditingProject({...editingProject, link: e.target.value})}
+                    placeholder="https://scratch.mit.edu/projects/..."
+                    className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-black text-sm uppercase tracking-widest pl-2">Status Karya</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProject({...editingProject, status: 'pending'})}
+                    className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${editingProject.status === 'pending' ? 'bg-[#FFE66D] text-black shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                  >
+                    Pending (Menunggu) ⏳
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProject({...editingProject, status: 'approved'})}
+                    className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${editingProject.status === 'approved' ? 'bg-[#6BCB77] text-white shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                  >
+                    Approved (Disetujui) ✅
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-[#4ECDC4] text-black py-4 rounded-xl border-4 border-black font-black text-xl shadow-[6px_6px_0px_black] hover:shadow-none transition-all"
+              >
+                SIMPAN PERUBAHAN KARYA ✨
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {editingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            className="bg-white border-4 border-black p-10 rounded-[3rem] shadow-[16px_16px_0px_black] w-full max-w-xl text-[#2D3436]"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-['Fredoka_One'] text-2xl uppercase">Edit Data Siswa</h3>
+              <button onClick={() => setEditingStudent(null)} className="bg-gray-100 p-2 rounded-xl border-2 border-black hover:bg-[#FF6B6B] hover:text-white transition-all">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStudent} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Nama Lengkap Murid *</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="Contoh: Alkholifi Amanullah Zayn" 
+                  className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                  value={editingStudent.name} 
+                  onChange={e => setEditingStudent({...editingStudent, name: e.target.value})} 
+                />
+                <span className="text-[10px] text-gray-400 font-bold block mt-1">Username login siswa akan sama persis dengan Nama Lengkap ini (sensitif huruf kapital).</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black uppercase mb-1">Kelas *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Contoh: 3A" 
+                    className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                    value={editingStudent.class} 
+                    onChange={e => setEditingStudent({...editingStudent, class: e.target.value})} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase mb-1">Password Login *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Password login" 
+                    className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                    value={editingStudent.password} 
+                    onChange={e => setEditingStudent({...editingStudent, password: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Jenis Kelamin *</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStudent({...editingStudent, gender: 'L'})}
+                    className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${editingStudent.gender === 'L' ? 'bg-[#4ECDC4] text-black shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                  >
+                    Laki-Laki (L) 👦
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingStudent({...editingStudent, gender: 'P'})}
+                    className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${editingStudent.gender === 'P' ? 'bg-[#FF6B6B] text-white shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                  >
+                    Perempuan (P) 👧
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Cita-cita / Deskripsi singkat (Opsional)</label>
+                <input 
+                  type="text" 
+                  placeholder="Cita-citaku ingin menjadi programmer hebat!" 
+                  className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                  value={editingStudent.bio} 
+                  onChange={e => setEditingStudent({...editingStudent, bio: e.target.value})} 
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="w-full bg-[#4ECDC4] text-black py-4 rounded-xl border-4 border-black font-black text-xl shadow-[4px_4px_0px_black] hover:shadow-none transition-all mt-4"
+              >
+                SIMPAN PERUBAHAN SISWA ✨
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
