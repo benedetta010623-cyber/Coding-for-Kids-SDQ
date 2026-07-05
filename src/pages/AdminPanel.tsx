@@ -21,6 +21,15 @@ function sanitizeUsername(name: string): string {
     .replace(/\.{2,}/g, '.');
 }
 
+function getAvatarUrl(name: string, gender: 'L' | 'P'): string {
+  const seed = encodeURIComponent(name.trim());
+  if (gender === 'P') {
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban`;
+  } else {
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart`;
+  }
+}
+
 export default function AdminPanel() {
   const { user, profile, loading } = useAuth();
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
@@ -38,6 +47,7 @@ export default function AdminPanel() {
     name: '',
     class: '3A',
     password: 'codingkids123',
+    gender: 'L',
     bio: "Cita-citaku ingin menjadi programmer hebat!"
   });
   const [registerStatus, setRegisterStatus] = useState({ type: '', message: '' });
@@ -373,10 +383,13 @@ export default function AdminPanel() {
         throw new Error("Gagal mendaftarkan akun siswa setelah beberapa percobaan karena duplikasi.");
       }
 
+      const studentGender = (newStudent.gender || 'L') as 'L' | 'P';
+
       await setDoc(doc(db, 'students', finalUid), {
         name: newStudent.name.trim(),
         class: newStudent.class,
-        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newStudent.name.trim())}`,
+        gender: studentGender,
+        avatarUrl: getAvatarUrl(newStudent.name, studentGender),
         bio: newStudent.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
         uid: finalUid,
         password: newStudent.password, // Save password so admin can view/look up when forgotten
@@ -396,6 +409,7 @@ export default function AdminPanel() {
         name: '',
         class: '3A',
         password: 'codingkids123',
+        gender: 'L',
         bio: "Cita-citaku ingin menjadi programmer hebat!"
       });
       
@@ -414,8 +428,8 @@ export default function AdminPanel() {
 
   const downloadTemplate = () => {
     const templateData = [
-      { "Nama Siswa": "Zayn Malik", "Kelas": "3A", "Username login": "zayn.malik", "Password": "codingkids123" },
-      { "Nama Siswa": "Ariel Noah", "Kelas": "4B", "Username login": "ariel.noah", "Password": "codingkids123" }
+      { "Nama Siswa": "Zayn Malik", "Kelas": "3A", "Jenis Kelamin (L/P)": "L", "Username login": "zayn.malik", "Password": "codingkids123" },
+      { "Nama Siswa": "Lia Itzy", "Kelas": "4B", "Jenis Kelamin (L/P)": "P", "Username login": "lia.itzy", "Password": "codingkids123" }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
@@ -446,14 +460,22 @@ export default function AdminPanel() {
 
           const name = findValue(['NamaSiswa', 'Nama', 'Name', 'NamaLengkap']);
           const className = findValue(['Kelas', 'Class']);
+          const genderRaw = findValue(['JenisKelamin', 'JenisKelaminLP', 'Gender', 'Sex', 'L/P', 'LP', 'Kelamin']);
           const username = findValue(['Usernamelogin', 'Username', 'User']);
           const password = findValue(['Password', 'Sandi', 'Pass']) || 'codingkids123';
           const bio = findValue(['Bio', 'Deskripsi', 'Cita-Cita', 'CitaCita']) || 'Cita-citaku ingin menjadi programmer hebat!';
+
+          let gender: 'L' | 'P' = 'L';
+          const genderLower = genderRaw.toLowerCase();
+          if (genderLower.startsWith('p') || genderLower.includes('perempuan') || genderLower.includes('female') || genderLower.includes('girl') || genderLower.includes('wanita')) {
+            gender = 'P';
+          }
 
           return {
             id: index,
             name,
             class: className,
+            gender,
             username,
             password,
             bio,
@@ -543,10 +565,13 @@ export default function AdminPanel() {
           throw new Error("Gagal mendaftarkan akun siswa setelah beberapa percobaan karena duplikasi.");
         }
 
+        const studentGender = (student.gender || 'L') as 'L' | 'P';
+
         await setDoc(doc(db, 'students', finalUid), {
           name: student.name.trim(),
           class: student.class.trim(),
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim())}`,
+          gender: studentGender,
+          avatarUrl: getAvatarUrl(student.name, studentGender),
           bio: student.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
           uid: finalUid,
           password: student.password,
@@ -831,6 +856,11 @@ export default function AdminPanel() {
                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name}`} alt={student.name} className="w-10 h-10 rounded-full border-2 border-black" />
                              <div>
                                <p className="font-black font-['Fredoka_One'] text-base">{student.name}</p>
+                                  {student.gender && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border-2 border-black select-none ${student.gender === 'P' ? 'bg-[#FF6B6B] text-white' : 'bg-[#4ECDC4] text-black'}`}>
+                                      {student.gender === 'P' ? 'P 👧' : 'L 👦'}
+                                    </span>
+                                  )}
                                <span className="text-[10px] text-gray-400 block font-mono">{student.id}</span>
                              </div>
                            </td>
@@ -938,6 +968,26 @@ export default function AdminPanel() {
                     </div>
 
                     <div>
+                      <label className="block text-xs font-black uppercase mb-1">Jenis Kelamin *</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setNewStudent({...newStudent, gender: 'L'})}
+                          className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${newStudent.gender === 'L' ? 'bg-[#4ECDC4] text-black shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                        >
+                          Laki-Laki (L) 👦
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewStudent({...newStudent, gender: 'P'})}
+                          className={`p-4 border-2 border-black rounded-xl font-black text-sm uppercase transition-all ${newStudent.gender === 'P' ? 'bg-[#FF6B6B] text-white shadow-[4px_4px_0px_black]' : 'bg-gray-50 text-gray-500'}`}
+                        >
+                          Perempuan (P) 👧
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
                       <label className="block text-xs font-black uppercase mb-1">Cita-cita / Deskripsi singkat (Opsional)</label>
                       <input 
                         type="text" 
@@ -990,6 +1040,7 @@ export default function AdminPanel() {
                       <ul className="text-xs font-bold space-y-1 text-gray-700 list-disc pl-4">
                         <li><strong>Nama Siswa</strong> (Nama lengkap siswa, digunakan sebagai nama login)</li>
                         <li><strong>Kelas</strong> (Contoh: 3A, 4B)</li>
+                        <li><strong>Jenis Kelamin (L/P)</strong> (Tulis <strong>L</strong> atau <strong>P</strong>. Avatar profil akan otomatis menyesuaikan!)</li>
                         <li><strong>Username login</strong> (Opsional, jika kosong akan digenerate otomatis dari nama)</li>
                         <li><strong>Password</strong> (Minimal 6 karakter, contoh: codingkids123)</li>
                       </ul>
@@ -1029,6 +1080,7 @@ export default function AdminPanel() {
                               <th className="p-3">No</th>
                               <th className="p-3">Nama Siswa</th>
                               <th className="p-3">Kelas</th>
+                              <th className="p-3">L/P</th>
                               <th className="p-3">Username Login</th>
                               <th className="p-3">Password</th>
                               <th className="p-3 text-center">Status</th>
@@ -1041,6 +1093,11 @@ export default function AdminPanel() {
                                 <td className="p-3 font-black">{student.name}</td>
                                 <td className="p-3">
                                   <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px] font-bold text-gray-700">{student.class ? (student.class.toLowerCase().startsWith('kelas') ? student.class : `Kelas ${student.class}`) : 'Tanpa Kelas'}</span>
+                                </td>
+                                <td className="p-3">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-black border border-black ${student.gender === 'P' ? 'bg-[#FF6B6B] text-white' : 'bg-[#4ECDC4] text-black'}`}>
+                                    {student.gender === 'P' ? 'P 👧' : 'L 👦'}
+                                  </span>
                                 </td>
                                 <td className="p-3 text-gray-500 font-mono">{student.username || '-'}</td>
                                 <td className="p-3 text-gray-500 font-mono">{student.password}</td>
