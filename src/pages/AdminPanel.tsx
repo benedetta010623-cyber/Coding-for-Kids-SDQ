@@ -10,6 +10,7 @@ import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPas
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
 import { getAvatarUrl, handleAvatarError } from '../lib/avatar';
+import { DEFAULT_CURRICULUM } from '../components/Curriculum';
 
 function sanitizeUsername(name: string): string {
   return name
@@ -175,130 +176,7 @@ export default function AdminPanel() {
         await deleteDoc(doc(db, 'curriculum', item.id));
       }
 
-      const syncItems = [
-        {
-          id: 'm1',
-          title: 'Dasar Komputer & Input (Fase 1 - Bulan 1)',
-          desc: 'Pertemuan 1: Pengenalan Komputer (Bagian & fungsi dasar). Pertemuan 2: Mouse & Keyboard (Klik, drag, mengetik dasar). Pertemuan 3: Game Edukatif (Koordinasi mata-tangan). Pertemuan 4: Paint (Menggambar & mewarnai dasar).',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'Monitor',
-          order: 1,
-          status: 'active'
-        },
-        {
-          id: 'm2',
-          title: 'Kreativitas Paint & Dasar MS Word (Fase 1 - Bulan 2)',
-          desc: 'Pertemuan 5: Kartu Nama di Paint (Menggunakan basic shape). Pertemuan 6: MS Word (Mengetik data sederhana & simpan file). Pertemuan 7: Menghias Teks (Pengaturan font, warna, ukuran). Pertemuan 8: Menyisipkan Gambar di Word.',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'Palette',
-          order: 2,
-          status: 'active'
-        },
-        {
-          id: 'm3',
-          title: 'Manajemen File & Internet Aman (Fase 1 - Bulan 3)',
-          desc: 'Pertemuan 9: Simpan & Buka File (Manajemen folder). Pertemuan 10: Internet Aman (Pedoman berselancar aman). Pertemuan 11: Cari Gambar di Google (Pencarian ramah anak). Pertemuan 12: Review & Evaluasi Ringan.',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'Globe',
-          order: 3,
-          status: 'active'
-        },
-        {
-          id: 'm4',
-          title: 'Kreasi Cerita & Dasar Presentasi (Fase 2 - Bulan 4)',
-          desc: 'Pertemuan 13: Cerita Mini di Word (Teks kreatif + gambar). Pertemuan 14: PowerPoint Slide Dasar (Judul & isi). Pertemuan 15: Desain Slide PowerPoint (Layout & estetika). Pertemuan 16: Proyek "Cita-Citaku" (Presentasi impian).',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'BookOpen',
-          order: 4,
-          status: 'active'
-        },
-        {
-          id: 'm5',
-          title: 'Olah Data Sederhana & Cloud Storage (Fase 2 - Bulan 5)',
-          desc: 'Pertemuan 17: Excel Tabel Sederhana (Nama, umur, nilai). Pertemuan 18: Fungsi SUM Excel (Penjumlahan otomatis). Pertemuan 19: Pengenalan Google Drive. Pertemuan 20: Menyimpan File ke Drive (Manajemen cloud).',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'Rocket',
-          order: 5,
-          status: 'active'
-        },
-        {
-          id: 'm6',
-          title: 'Portofolio Digital & Evaluasi Akhir (Fase 2 - Bulan 6)',
-          desc: 'Pertemuan 21: Portofolio Digital Mini (Kumpulan Word + PPT + Gambar). Pertemuan 22: Presentasi Portofolio (Tampil di depan kelas). Pertemuan 23: Review & Penguatan Materi. Pertemuan 24: Evaluasi Akhir & Pembagian Sertifikat.',
-          semester: 1,
-          duration: '4 Minggu',
-          icon: 'Palette',
-          order: 6,
-          status: 'active'
-        },
-        {
-          id: 'm7',
-          title: 'Aplikasi Praktis & Kolaborasi (Fase 3 - Bulan 7)',
-          desc: 'Pertemuan 25: Word Cerita Bergambar. Pertemuan 26: PowerPoint Cerita Digital (Animasi dasar). Pertemuan 27: Excel Grafik Sederhana (Grafik batang). Pertemuan 28: Google Docs (Mengetik kolaboratif bersama teman).',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'BookOpen',
-          order: 7,
-          status: 'coming_soon'
-        },
-        {
-          id: 'm8',
-          title: 'Desain Canva & Kampanye Digital (Fase 3 - Bulan 8)',
-          desc: 'Pertemuan 29: Pengenalan Canva Dasar. Pertemuan 30: Proyek Mini Poster "Internet Aman untuk Anak". Pertemuan 31: Presentasi Proyek Mini. Pertemuan 32: Sesi Umpan Balik & Revisi Desain Poster.',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'Palette',
-          order: 8,
-          status: 'coming_soon'
-        },
-        {
-          id: 'm9',
-          title: 'Game Literasi & Sinergi Tim (Fase 3 - Bulan 9)',
-          desc: 'Pertemuan 33: Review Fase 3. Pertemuan S: Game Literasi Digital Tim (Kompetensi kelompok). Pertemuan 35: Simulasi Kolaborasi Digital (Google Slides). Pertemuan 36: Refleksi Diri & Berbagi Kemajuan.',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'Globe',
-          order: 9,
-          status: 'coming_soon'
-        },
-        {
-          id: 'm10',
-          title: 'Perancangan Proyek Akhir (Fase 4 - Bulan 10)',
-          desc: 'Pertemuan 37: Penentuan Tema Proyek Kelompok. Pertemuan 38: Menulis Naskah & Kerangka Slide Bersama. Pertemuan 39: Desain Presentasi Interaktif. Pertemuan 40: Latihan & Simulasi Presentasi Digital.',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'Rocket',
-          order: 10,
-          status: 'coming_soon'
-        },
-        {
-          id: 'm11',
-          title: 'Eksekusi Proyek & Portofolio Lengkap (Fase 4 - Bulan 11)',
-          desc: 'Pertemuan 41: Presentasi Proyek Digital Kelompok. Pertemuan 42: Evaluasi & Feedbacks Konstruktif. Pertemuan 43: Menyusun Portofolio Digital Lengkap di Drive. Pertemuan 44: Refleksi Bersama & Diskusi Proses Belajar.',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'Monitor',
-          order: 11,
-          status: 'coming_soon'
-        },
-        {
-          id: 'm12',
-          title: 'Showcase Karya & Kelulusan (Fase 4 - Bulan 12)',
-          desc: 'Pertemuan 45: Pameran Mini Proyek Digital (Sajian untuk Orang Tua & Guru). Pertemuan 46: Kuis Akhir Literasi Digital. Pertemuan 47: Penguatan Etika & Aman Online. Pertemuan 48: Upacara Kelulusan & Sertifikasi.',
-          semester: 2,
-          duration: '4 Minggu',
-          icon: 'Globe',
-          order: 12,
-          status: 'coming_soon'
-        }
-      ];
-
-      for (const item of syncItems) {
+      for (const item of DEFAULT_CURRICULUM) {
         await setDoc(doc(db, 'curriculum', item.id), item);
       }
       alert("Sinkronisasi kurikulum selesai dengan sukses! 🚀");
