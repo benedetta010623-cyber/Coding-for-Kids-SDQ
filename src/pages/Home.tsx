@@ -6,6 +6,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import Curriculum from '../components/Curriculum';
+import { getAvatarUrl, handleAvatarError } from '../lib/avatar';
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -184,7 +185,12 @@ export default function Home() {
                   <h3 className="font-['Fredoka_One'] text-xl mb-2 line-clamp-1">{project.title}</h3>
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-6 h-6 bg-[#4ECDC4] border-2 border-black rounded-full overflow-hidden">
-                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${project.studentName}`} alt={project.studentName} />
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(project.studentName)}`} 
+                          alt={project.studentName} 
+                          onError={(e) => handleAvatarError(e, project.studentName)}
+                          referrerPolicy="no-referrer"
+                        />
                     </div>
                     <span className="text-[10px] font-black uppercase text-gray-500">{project.studentName}</span>
                   </div>
@@ -228,8 +234,10 @@ export default function Home() {
               >
                 <div className="w-24 h-24 mb-4 rounded-full border-4 border-black overflow-hidden bg-[#FF6B6B]">
                   <img 
-                    src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.name.trim() + '_' + (student.gender || 'L'))}${student.gender === 'P' ? '&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban&facialHairProbability=0' : '&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart'}`} 
+                    src={student.avatarUrl || getAvatarUrl(student.name, student.gender || 'L')} 
                     alt={student.name} 
+                    onError={(e) => handleAvatarError(e, student.name, student.gender)}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover" 
                   />
                 </div>

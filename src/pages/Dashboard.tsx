@@ -5,143 +5,20 @@ import { collection, addDoc, query, where, getDocs, serverTimestamp, orderBy, on
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { LayoutDashboard, LogOut, Plus, Gamepad2, ImageIcon, FileText, Globe, Clock, CheckCircle, AlertCircle, Sparkles, RefreshCw, Sliders } from 'lucide-react';
-
-const HAIR_OPTIONS = [
-  { value: 'shortHair', label: 'Rambut Pendek Rapi 💇‍♂️' },
-  { value: 'shortHairFrizzle', label: 'Rambut Keriting Pendek 🌀' },
-  { value: 'shortHairShaggyMullet', label: 'Rambut Mullet Gaul 🤘' },
-  { value: 'shortHairTheCaesarWithSidePart', label: 'Rambut Belah Samping 🧑‍💼' },
-  { value: 'longHair', label: 'Rambut Panjang Lurus 👩' },
-  { value: 'longHairCurly', label: 'Rambut Panjang Ikal 👩‍🦱' },
-  { value: 'longHairBob', label: 'Rambut Bob Klasik 💇‍♀️' },
-  { value: 'longHairBun', label: 'Rambut Sanggul Lucu 👱‍♀️' },
-  { value: 'longHairFro', label: 'Rambut Afro Kribo 🦁' },
-  { value: 'hijab', label: 'Hijab Anggun 🧕' },
-  { value: 'turban', label: 'Turban Cantik 👳‍♀️' },
-  { value: 'hat', label: 'Topi Gaul 🧢' },
-  { value: 'noHair', label: 'Botak Keren 🧑‍🦲' }
-];
-
-const HAIR_COLOR_OPTIONS = [
-  { value: '2c1b18', label: 'Hitam 🖤' },
-  { value: '4a3728', label: 'Cokelat Tua 🤎' },
-  { value: '724124', label: 'Cokelat Jahe 🧡' },
-  { value: 'e81414', label: 'Merah Menyala ❤️' },
-  { value: 'ecdcbf', label: 'Pirang (Blonde) 💛' },
-  { value: 'b1afab', label: 'Abu-abu / Perak 🤍' },
-  { value: 'f59797', label: 'Pastel Pink 🌸' }
-];
-
-const EYE_OPTIONS = [
-  { value: 'default', label: 'Biasa 👀' },
-  { value: 'happy', label: 'Gembira 😊' },
-  { value: 'wink', label: 'Berkedip 😉' },
-  { value: 'hearts', label: 'Jatuh Cinta 😍' },
-  { value: 'side', label: 'Melirik 😏' },
-  { value: 'squint', label: 'Fokus/Sipit 🧐' },
-  { value: 'close', label: 'Terpejam 😌' }
-];
-
-const MOUTH_OPTIONS = [
-  { value: 'default', label: 'Tersenyum Tipis 🙂' },
-  { value: 'smile', label: 'Senyum Lebar 😀' },
-  { value: 'twinkle', label: 'Senyum Bintang 🌟' },
-  { value: 'tongue', label: 'Melet Lucu 😜' },
-  { value: 'serious', label: 'Serius 😐' },
-  { value: 'grimace', label: 'Nyengir 😬' }
-];
-
-const ACCESSORY_OPTIONS = [
-  { value: 'blank', label: 'Tanpa Kacamata ❌' },
-  { value: 'prescription01', label: 'Kacamata Kotak 👓' },
-  { value: 'prescription02', label: 'Kacamata Bulat 🤓' },
-  { value: 'round', label: 'Kacamata Retro 😎' },
-  { value: 'sunglasses', label: 'Kacamata Hitam 🕶️' }
-];
-
-const CLOTHING_OPTIONS = [
-  { value: 'graphicShirt', label: 'Kaos Bergambar 👕' },
-  { value: 'hoodie', label: 'Jaket Hoodie 🧥' },
-  { value: 'blazerAndShirt', label: 'Kemeja & Blazer 👔' },
-  { value: 'blazerAndSweater', label: 'Sweater & Blazer 🧶' },
-  { value: 'collarAndSweater', label: 'Sweater Berkerah 🧣' },
-  { value: 'overall', label: 'Baju Kodok/Overall 👨‍🔧' }
-];
-
-const CLOTHING_COLOR_OPTIONS = [
-  { value: 'ff4848', label: 'Merah Ceria ❤️' },
-  { value: '92bbfd', label: 'Biru Lembut 💙' },
-  { value: '51a09e', label: 'Toska Indah 💚' },
-  { value: 'ffb848', label: 'Kuning Terang 💛' },
-  { value: 'ff9eb5', label: 'Pink Pastel 🌸' },
-  { value: '65c9ff', label: 'Biru Langit 🩵' },
-  { value: '262e33', label: 'Hitam Keren 🖤' },
-  { value: 'e6e6e6', label: 'Putih Bersih 🤍' }
-];
-
-const SKIN_OPTIONS = [
-  { value: 'edb98a', label: 'Putih Gading 🧑🏻' },
-  { value: 'ffdbb4', label: 'Kuning Langsat 🧑🏼' },
-  { value: 'd08b5b', label: 'Sawo Matang 🧑🏽' },
-  { value: 'ae5d29', label: 'Cokelat Manis 🧑🏾' },
-  { value: '614335', label: 'Gelap Eksotis 🧑🏿' }
-];
-
-function buildCustomAvatarUrl(options: any): string {
-  const { seed, top, hairColor, eyes, mouth, accessories, clothing, clothingColor, skinColor } = options;
-  const baseUrl = 'https://api.dicebear.com/7.x/avataaars/svg';
-  const params = new URLSearchParams();
-  
-  if (seed) params.set('seed', seed);
-  if (top) params.set('topType', top);
-  if (hairColor) params.set('hairColor', hairColor);
-  if (eyes) params.set('eyes', eyes);
-  if (mouth) params.set('mouth', mouth);
-  if (accessories) params.set('accessories', accessories);
-  if (clothing) params.set('clothing', clothing);
-  if (clothingColor) params.set('clothingColor', clothingColor);
-  if (skinColor) params.set('skinColor', skinColor);
-  
-  params.set('facialHairProbability', '0'); // Safety for kids
-  
-  return `${baseUrl}?${params.toString()}`;
-}
-
-function parseAvatarUrl(url: string, name: string, gender?: string): any {
-  const defaultOptions = {
-    seed: encodeURIComponent((name || 'student').trim() + '_' + (gender || 'L')),
-    top: gender === 'P' ? 'longHair' : 'shortHair',
-    hairColor: '2c1b18',
-    eyes: 'default',
-    mouth: 'default',
-    accessories: 'blank',
-    clothing: 'graphicShirt',
-    clothingColor: '262e33',
-    skinColor: 'ffdbb4'
-  };
-
-  if (!url || !url.includes('api.dicebear.com')) {
-    return defaultOptions;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-    const searchParams = parsedUrl.searchParams;
-    return {
-      seed: searchParams.get('seed') || defaultOptions.seed,
-      top: searchParams.get('topType') || defaultOptions.top,
-      hairColor: searchParams.get('hairColor') || defaultOptions.hairColor,
-      eyes: searchParams.get('eyes') || defaultOptions.eyes,
-      mouth: searchParams.get('mouth') || defaultOptions.mouth,
-      accessories: searchParams.get('accessories') || defaultOptions.accessories,
-      clothing: searchParams.get('clothing') || defaultOptions.clothing,
-      clothingColor: searchParams.get('clothingColor') || defaultOptions.clothingColor,
-      skinColor: searchParams.get('skinColor') || defaultOptions.skinColor
-    };
-  } catch (e) {
-    return defaultOptions;
-  }
-}
+import { 
+  HAIR_OPTIONS, 
+  HAIR_COLOR_OPTIONS, 
+  EYE_OPTIONS, 
+  MOUTH_OPTIONS, 
+  ACCESSORY_OPTIONS, 
+  CLOTHING_OPTIONS, 
+  CLOTHING_COLOR_OPTIONS, 
+  SKIN_OPTIONS, 
+  getAvatarUrl, 
+  buildCustomAvatarUrl, 
+  parseAvatarUrl, 
+  handleAvatarError 
+} from '../lib/avatar';
 
 export default function Dashboard() {
   const { user, profile, loading } = useAuth();
@@ -165,11 +42,11 @@ export default function Dashboard() {
   });
   const [avatarOptions, setAvatarOptions] = useState<any>({
     seed: 'student',
-    top: 'shortHair',
+    top: 'shortFlat',
     hairColor: '2c1b18',
     eyes: 'default',
     mouth: 'default',
-    accessories: 'blank',
+    accessories: 'none',
     clothing: 'graphicShirt',
     clothingColor: '262e33',
     skinColor: 'ffdbb4'
@@ -192,11 +69,11 @@ export default function Dashboard() {
       } else {
         const defaultOptions = {
           seed: encodeURIComponent((profile.name || 'student').trim() + '_' + (profile.gender || 'L')),
-          top: profile.gender === 'P' ? 'longHair' : 'shortHair',
+          top: profile.gender === 'P' ? 'straight01' : 'shortFlat',
           hairColor: '2c1b18',
           eyes: 'default',
           mouth: 'default',
-          accessories: 'blank',
+          accessories: 'none',
           clothing: 'graphicShirt',
           clothingColor: '262e33',
           skinColor: 'ffdbb4'
@@ -248,11 +125,11 @@ export default function Dashboard() {
     if (!profile) return;
     const defaultOptions = {
       seed: encodeURIComponent((profile.name || 'student').trim() + '_' + (profile.gender || 'L')),
-      top: profile.gender === 'P' ? 'longHair' : 'shortHair',
+      top: profile.gender === 'P' ? 'straight01' : 'shortFlat',
       hairColor: '2c1b18',
       eyes: 'default',
       mouth: 'default',
-      accessories: 'blank',
+      accessories: 'none',
       clothing: 'graphicShirt',
       clothingColor: '262e33',
       skinColor: 'ffdbb4'
@@ -378,8 +255,10 @@ export default function Dashboard() {
           <div className="bg-[#4ECDC4] border-4 border-black p-8 rounded-[2.5rem] shadow-[12px_12px_0px_black] flex flex-col items-center justify-center text-center">
             <div className="w-20 h-20 bg-white border-4 border-black rounded-full overflow-hidden mb-4 shadow-[4px_4px_0px_black] relative group">
                <img 
-                 src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent((profile.name || '').trim() + '_' + (profile.gender || 'L'))}${profile.gender === 'P' ? '&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban&facialHairProbability=0' : '&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart'}`} 
+                 src={profile.avatarUrl || getAvatarUrl(profile.name, profile.gender || 'L')} 
                  alt={profile.name} 
+                 onError={(e) => handleAvatarError(e, profile.name, profile.gender)}
+                 referrerPolicy="no-referrer"
                  className="w-full h-full object-cover" 
                />
                <button 
@@ -436,8 +315,10 @@ export default function Dashboard() {
                     <div className="flex flex-col sm:flex-row items-center gap-6 bg-white border-2 border-black p-4 rounded-2xl">
                       <div className="w-28 h-28 bg-[#FFE66D] border-4 border-black rounded-full overflow-hidden shadow-[4px_4px_0px_black] flex-shrink-0 relative">
                         <img 
-                          src={editProfileData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent((profile.name || '').trim())}`} 
+                          src={editProfileData.avatarUrl || getAvatarUrl(profile.name, profile.gender || 'L')} 
                           alt="Pratinjau Avatar" 
+                          onError={(e) => handleAvatarError(e, profile.name, profile.gender)}
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover" 
                         />
                       </div>
@@ -467,7 +348,7 @@ export default function Dashboard() {
                       <div className="space-y-1">
                         <label className="block font-black text-xs uppercase pl-1 text-gray-700">💇‍♂️ Gaya Rambut</label>
                         <select
-                          value={avatarOptions.top || 'shortHair'}
+                          value={avatarOptions.top || 'shortFlat'}
                           onChange={e => handleAvatarOptionChange('top', e.target.value)}
                           className="w-full bg-white border-2 border-black p-3 rounded-xl font-bold text-xs shadow-[2px_2px_0px_black] focus:shadow-none transition-all outline-none cursor-pointer"
                         >

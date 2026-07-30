@@ -9,6 +9,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
+import { getAvatarUrl, handleAvatarError } from '../lib/avatar';
 
 function sanitizeUsername(name: string): string {
   return name
@@ -19,16 +20,6 @@ function sanitizeUsername(name: string): string {
     .replace(/[^a-z0-9.]/g, '')
     .replace(/^\.+|\.+$/g, '')
     .replace(/\.{2,}/g, '.');
-}
-
-function getAvatarUrl(name: string, gender: 'L' | 'P'): string {
-  // Append gender to seed so that gender change generates a completely new avatar styling instead of the unisex seed features.
-  const seed = encodeURIComponent(name.trim() + '_' + gender);
-  if (gender === 'P') {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&topType=longHair,bob,curly,dreads,frida,fro,froBand,hijab,turban&facialHairProbability=0`;
-  } else {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&topType=shortHair,frizzle,shaggy,shaggyMullet,theCaesar,theCaesarWithSidePart`;
-  }
 }
 
 export default function AdminPanel() {
@@ -1090,7 +1081,13 @@ export default function AdminPanel() {
                           return (
                             <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                               <td className="py-4 flex items-center gap-3">
-                                <img src={student.avatarUrl || getAvatarUrl(student.name, student.gender || 'L')} alt={student.name} className="w-10 h-10 rounded-full border-2 border-black" />
+                                <img 
+                                  src={student.avatarUrl || getAvatarUrl(student.name, student.gender || 'L')} 
+                                  alt={student.name} 
+                                  onError={(e) => handleAvatarError(e, student.name, student.gender)}
+                                  referrerPolicy="no-referrer"
+                                  className="w-10 h-10 rounded-full border-2 border-black" 
+                                />
                                 <div>
                                   <p className="font-black font-['Fredoka_One'] text-base">{student.name}</p>
                                   {student.gender && (
