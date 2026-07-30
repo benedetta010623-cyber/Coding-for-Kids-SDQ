@@ -9,7 +9,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
-import { getAvatarUrl, handleAvatarError } from '../lib/avatar';
+import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
 import { DEFAULT_CURRICULUM } from '../components/Curriculum';
 
 function sanitizeUsername(name: string): string {
@@ -54,6 +54,7 @@ export default function AdminPanel() {
     class: '3A',
     password: 'codingkids123',
     gender: 'L',
+    photoUrl: '',
     bio: "Cita-citaku ingin menjadi programmer hebat!"
   });
   const [registerStatus, setRegisterStatus] = useState({ type: '', message: '' });
@@ -273,9 +274,12 @@ export default function AdminPanel() {
         class: newStudent.class,
         gender: studentGender,
         avatarUrl: getAvatarUrl(newStudent.name, studentGender),
+        photoUrl: newStudent.photoUrl?.trim() || '',
         bio: newStudent.bio.trim() || "Cita-citaku ingin menjadi programmer hebat!",
         uid: finalUid,
-        password: newStudent.password, // Save password so admin can view/look up when forgotten
+        // TODO (Technical Debt): Plaintext password stored for teacher/admin reference for young kids.
+        // Replace with Firebase Auth password reset or temporary password flow in future release.
+        password: newStudent.password,
         role: 'student'
       });
 
@@ -507,6 +511,7 @@ export default function AdminPanel() {
         class: editingStudent.class.trim(),
         gender: updatedGender,
         avatarUrl: updatedAvatarUrl,
+        photoUrl: editingStudent.photoUrl?.trim() || '',
         bio: editingStudent.bio?.trim() || "Cita-citaku ingin menjadi programmer hebat!",
         password: editingStudent.password
       });
@@ -960,11 +965,13 @@ export default function AdminPanel() {
                             <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                               <td className="py-4 flex items-center gap-3">
                                 <img 
-                                  src={student.avatarUrl || getAvatarUrl(student.name, student.gender || 'L')} 
+                                  src={getStudentAvatarSrc(student)} 
                                   alt={student.name} 
                                   onError={(e) => handleAvatarError(e, student.name, student.gender)}
                                   referrerPolicy="no-referrer"
-                                  className="w-10 h-10 rounded-full border-2 border-black" 
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-10 h-10 rounded-full border-2 border-black object-cover" 
                                 />
                                 <div>
                                   <p className="font-black font-['Fredoka_One'] text-base">{student.name}</p>
@@ -1176,6 +1183,18 @@ export default function AdminPanel() {
                           Perempuan (P) 👧
                         </button>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black uppercase mb-1">URL Foto Siswa Ringan / WebP (Opsional)</label>
+                      <input 
+                        type="text" 
+                        placeholder="/avatars/nama-siswa.webp" 
+                        className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                        value={newStudent.photoUrl || ''} 
+                        onChange={e => setNewStudent({...newStudent, photoUrl: e.target.value})} 
+                      />
+                      <span className="text-[10px] text-gray-400 font-bold block mt-1">Bisa diisi URL foto WebP lokal e.g. /avatars/nama.webp atau URL gambar publik.</span>
                     </div>
 
                     <div>
@@ -1539,6 +1558,18 @@ export default function AdminPanel() {
                     Perempuan (P) 👧
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">URL Foto Siswa Ringan / WebP (Opsional)</label>
+                <input 
+                  type="text" 
+                  placeholder="/avatars/nama-siswa.webp" 
+                  className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" 
+                  value={editingStudent.photoUrl || ''} 
+                  onChange={e => setEditingStudent({...editingStudent, photoUrl: e.target.value})} 
+                />
+                <span className="text-[10px] text-gray-400 font-bold block mt-1">Bisa diisi URL foto WebP lokal e.g. /avatars/nama.webp atau URL gambar publik.</span>
               </div>
 
               <div>

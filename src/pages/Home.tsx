@@ -6,7 +6,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import Curriculum from '../components/Curriculum';
-import { getAvatarUrl, handleAvatarError } from '../lib/avatar';
+import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -234,10 +234,12 @@ export default function Home() {
               >
                 <div className="w-24 h-24 mb-4 rounded-full border-4 border-black overflow-hidden bg-[#FF6B6B]">
                   <img 
-                    src={student.avatarUrl || getAvatarUrl(student.name, student.gender || 'L')} 
+                    src={getStudentAvatarSrc(student)} 
                     alt={student.name} 
                     onError={(e) => handleAvatarError(e, student.name, student.gender)}
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover" 
                   />
                 </div>

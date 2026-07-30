@@ -5,9 +5,27 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_CURRICULUM } from '../components/Curriculum';
 
+/**
+ * NOTICE: Database seeding page for development mode only.
+ * This route MUST NOT be accessible in production to prevent exposing hardcoded credentials or resetting database data.
+ */
 export default function InitPage() {
   const [status, setStatus] = useState('');
   const navigate = useNavigate();
+
+  const isDevMode = import.meta.env.DEV;
+
+  if (!isDevMode) {
+    return (
+      <div className="min-h-screen bg-black text-red-500 p-10 font-mono flex flex-col items-center justify-center text-center">
+        <h1 className="text-3xl mb-4 uppercase tracking-widest font-bold">404 - Not Available</h1>
+        <p className="text-white mb-6">Halaman setup database tidak tersedia di lingkungan produksi demi keamanan.</p>
+        <button onClick={() => navigate('/')} className="bg-white text-black px-6 py-2 rounded font-bold hover:bg-gray-200">
+          Kembali ke Beranda
+        </button>
+      </div>
+    );
+  }
 
   const seedData = async () => {
     setStatus('Memulai proses setup database...');
@@ -75,7 +93,7 @@ export default function InitPage() {
 
   return (
     <div className="min-h-screen bg-black text-green-500 p-10 font-mono">
-      <h1 className="text-2xl mb-4 uppercase tracking-widest">{">"} DATABASE SETUP</h1>
+      <h1 className="text-2xl mb-4 uppercase tracking-widest">{">"} DATABASE SETUP (DEV ONLY)</h1>
       <p className="mb-4 text-white">Konfigurasi akun awal untuk aplikasi.</p>
       <button 
         onClick={seedData}

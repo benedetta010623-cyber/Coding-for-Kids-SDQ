@@ -17,7 +17,8 @@ import {
   getAvatarUrl, 
   buildCustomAvatarUrl, 
   parseAvatarUrl, 
-  handleAvatarError 
+  handleAvatarError,
+  getStudentAvatarSrc
 } from '../lib/avatar';
 
 export default function Dashboard() {
@@ -255,10 +256,12 @@ export default function Dashboard() {
           <div className="bg-[#4ECDC4] border-4 border-black p-8 rounded-[2.5rem] shadow-[12px_12px_0px_black] flex flex-col items-center justify-center text-center">
             <div className="w-20 h-20 bg-white border-4 border-black rounded-full overflow-hidden mb-4 shadow-[4px_4px_0px_black] relative group">
                <img 
-                 src={profile.avatarUrl || getAvatarUrl(profile.name, profile.gender || 'L')} 
+                 src={getStudentAvatarSrc(profile)} 
                  alt={profile.name} 
                  onError={(e) => handleAvatarError(e, profile.name, profile.gender)}
                  referrerPolicy="no-referrer"
+                 loading="lazy"
+                 decoding="async"
                  className="w-full h-full object-cover" 
                />
                <button 

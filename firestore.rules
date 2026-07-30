@@ -87,10 +87,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Admins collection (protected)
+    // Admins collection (strictly protected)
+    // Admins must be provisioned manually in Firebase Console or server-side CLI
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;
-      allow write: if isSignedIn() && request.auth.uid == adminId; // Allow self-setup
+      allow write: if false;
     }
   }
 }

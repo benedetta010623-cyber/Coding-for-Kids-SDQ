@@ -96,6 +96,29 @@ export function getAvatarUrl(name: string, gender: 'L' | 'P' | string = 'L'): st
   }
 }
 
+/**
+ * Helper to get student avatar src in priority order:
+ * 1. student.photoUrl (Real photo URL e.g. /avatars/nama.webp or Cloud Storage URL)
+ * 2. student.avatarUrl (Customized or saved DiceBear avatar URL)
+ * 3. Default DiceBear fallback generated using student name and gender
+ * 
+ * Recommended avatar photo specs for performance:
+ * - Dimensions: 300x300 or 512x512 px square
+ * - Format: WebP preferred
+ * - Size: 20KB - 80KB target size
+ * - Storage path example: public/avatars/alkholifi.webp -> "/avatars/alkholifi.webp"
+ */
+export function getStudentAvatarSrc(student?: { photoUrl?: string; avatarUrl?: string; name?: string; gender?: string } | null): string {
+  if (!student) return getAvatarUrl('Siswa', 'L');
+  if (student.photoUrl && student.photoUrl.trim() !== '') {
+    return student.photoUrl.trim();
+  }
+  if (student.avatarUrl && student.avatarUrl.trim() !== '') {
+    return student.avatarUrl.trim();
+  }
+  return getAvatarUrl(student.name || 'Siswa', student.gender || 'L');
+}
+
 export function buildCustomAvatarUrl(options: any): string {
   const { seed, top, hairColor, eyes, mouth, accessories, clothing, clothingColor, skinColor } = options;
   const baseUrl = 'https://api.dicebear.com/7.x/avataaars/svg';
@@ -165,6 +188,5 @@ export function parseAvatarUrl(url: string, name: string, gender?: string): any 
 
 export function handleAvatarError(e: React.SyntheticEvent<HTMLImageElement, Event>, name?: string, gender?: string) {
   const target = e.currentTarget;
-  const safeName = encodeURIComponent((name || 'Siswa').trim() + '_' + (gender || 'L'));
-  target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${safeName}`;
+  target.src = getAvatarUrl(name || 'Siswa', gender || 'L');
 }
