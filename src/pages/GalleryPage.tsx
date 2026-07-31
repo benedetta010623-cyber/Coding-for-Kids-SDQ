@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Heart, MessageCircle, ChevronLeft, Send, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { formatImageUrl } from '../lib/utils';
 
 export default function GalleryPage() {
   const [gallery, setGallery] = useState<any[]>([]);
@@ -97,7 +98,14 @@ export default function GalleryPage() {
                 onClick={() => setSelectedItem(item)}
               >
                 <div className="h-64 bg-gray-100 border-b-4 border-black overflow-hidden relative">
-                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img 
+                    src={formatImageUrl(item.imageUrl)} 
+                    alt={item.title} 
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-xl border-2 border-black text-[10px] font-black uppercase shadow-[2px_2px_0_black]">
                      {new Date(item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString()}
                   </div>
@@ -142,7 +150,14 @@ export default function GalleryPage() {
             >
               {/* Image Section */}
               <div className="w-full md:w-3/5 bg-black relative flex items-center justify-center border-b-4 md:border-b-0 md:border-r-4 border-black min-h-[300px]">
-                <img src={selectedItem.imageUrl} alt={selectedItem.title} className="w-full h-full object-contain md:object-cover max-h-[60vh] md:max-h-none" />
+                <img 
+                  src={formatImageUrl(selectedItem.imageUrl)} 
+                  alt={selectedItem.title} 
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-contain md:object-cover max-h-[60vh] md:max-h-none" 
+                />
                 <button 
                   onClick={() => setSelectedItem(null)}
                   className="absolute top-4 left-4 bg-white p-2 rounded-xl border-2 border-black shadow-[4px_4px_0_black] hover:scale-105 z-10 md:hidden"

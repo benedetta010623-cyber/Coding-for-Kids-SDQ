@@ -10,6 +10,7 @@ import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPas
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
 import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
+import { formatImageUrl } from '../lib/utils';
 import { DEFAULT_CURRICULUM } from '../components/Curriculum';
 
 function sanitizeUsername(name: string): string {
@@ -192,6 +193,7 @@ export default function AdminPanel() {
     try {
       await addDoc(collection(db, 'gallery'), {
         ...newGallery,
+        imageUrl: formatImageUrl(newGallery.imageUrl),
         uploadedBy: user.uid,
         createdAt: serverTimestamp(),
         likes: [],
@@ -541,7 +543,7 @@ export default function AdminPanel() {
         title: editingProject.title.trim(),
         description: editingProject.description.trim(),
         category: editingProject.category,
-        imageUrl: editingProject.imageUrl.trim(),
+        imageUrl: formatImageUrl(editingProject.imageUrl),
         link: editingProject.link.trim(),
         status: editingProject.status
       });
@@ -668,7 +670,14 @@ export default function AdminPanel() {
                     {project.status === 'approved' ? 'Disetujui' : 'Pending'}
                   </span>
                   <div className="w-full md:w-64 h-40 bg-gray-100 border-4 border-black rounded-2xl overflow-hidden shrink-0">
-                    <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover" />
+                    <img 
+                      src={formatImageUrl(project.imageUrl)} 
+                      alt={project.title} 
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover" 
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -807,7 +816,14 @@ export default function AdminPanel() {
               {gallery.map(item => (
                 <div key={item.id} className="bg-white border-4 border-black rounded-[2rem] overflow-hidden shadow-[8px_8px_0px_black] group">
                   <div className="h-48 bg-gray-100 border-b-4 border-black overflow-hidden relative">
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <img 
+                      src={formatImageUrl(item.imageUrl)} 
+                      alt={item.title} 
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+                    />
                   </div>
                   <div className="p-6">
                     <h3 className="font-['Fredoka_One'] text-xl mb-2">{item.title}</h3>
@@ -828,7 +844,10 @@ export default function AdminPanel() {
                    <form onSubmit={handleAddGallery} className="space-y-4">
                      <input type="text" placeholder="Judul Kegiatan" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" value={newGallery.title} onChange={e => setNewGallery({...newGallery, title: e.target.value})} />
                      <textarea placeholder="Deskripsi Kegiatan" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold h-24" value={newGallery.description} onChange={e => setNewGallery({...newGallery, description: e.target.value})} />
-                     <input type="url" placeholder="Link Gambar (URL)" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" value={newGallery.imageUrl} onChange={e => setNewGallery({...newGallery, imageUrl: e.target.value})} />
+                     <div>
+                       <input type="url" placeholder="Link Gambar (URL)" required className="w-full p-4 bg-gray-50 border-2 border-black rounded-xl font-bold" value={newGallery.imageUrl} onChange={e => setNewGallery({...newGallery, imageUrl: e.target.value})} />
+                       <span className="text-[10px] text-gray-500 font-bold block mt-1">Bisa link Imgur (misal https://imgur.com/xyz), Unsplash, atau URL gambar publik.</span>
+                     </div>
                      <button type="submit" className="w-full bg-[#FF6B6B] text-white py-4 rounded-xl border-4 border-black font-black text-xl shadow-[4px_4px_0px_black] hover:shadow-none transition-all mt-4">SIMPAN KEGIATAN ✨</button>
                      <button type="button" onClick={() => setIsAddingGallery(false)} className="w-full font-black text-xs uppercase text-gray-400 mt-2">Batalkan</button>
                    </form>

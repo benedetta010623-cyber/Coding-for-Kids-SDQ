@@ -96,6 +96,8 @@ export function getAvatarUrl(name: string, gender: 'L' | 'P' | string = 'L'): st
   }
 }
 
+import { formatImageUrl } from './utils';
+
 /**
  * Helper to get student avatar src in priority order:
  * 1. student.photoUrl (Real photo URL e.g. /avatars/nama.webp or Cloud Storage URL)
@@ -111,10 +113,10 @@ export function getAvatarUrl(name: string, gender: 'L' | 'P' | string = 'L'): st
 export function getStudentAvatarSrc(student?: { photoUrl?: string; avatarUrl?: string; name?: string; gender?: string } | null): string {
   if (!student) return getAvatarUrl('Siswa', 'L');
   if (student.photoUrl && student.photoUrl.trim() !== '') {
-    return student.photoUrl.trim();
+    return formatImageUrl(student.photoUrl);
   }
   if (student.avatarUrl && student.avatarUrl.trim() !== '') {
-    return student.avatarUrl.trim();
+    return formatImageUrl(student.avatarUrl);
   }
   return getAvatarUrl(student.name || 'Siswa', student.gender || 'L');
 }

@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Menu, X, Rocket, Brain, Palette, Monitor, ChevronRight, Mail, Instagram, MessageCircle, LogIn } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
-import { cn } from '../lib/utils';
+import { cn, formatImageUrl } from '../lib/utils';
 import Curriculum from '../components/Curriculum';
 import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
 
@@ -176,7 +176,14 @@ export default function Home() {
                 className="bg-white border-4 border-black rounded-[2.5rem] overflow-hidden shadow-[8px_8px_0px_black] group"
               >
                 <div className="h-48 bg-gray-100 border-b-4 border-black relative overflow-hidden">
-                  <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img 
+                    src={formatImageUrl(project.imageUrl)} 
+                    alt={project.title} 
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  />
                   <div className="absolute top-4 left-4 bg-white border-2 border-black px-3 py-1 rounded-full font-black text-[10px] uppercase shadow-[2px_2px_0px_black]">
                     {project.category}
                   </div>
