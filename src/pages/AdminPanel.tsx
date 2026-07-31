@@ -11,6 +11,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 import * as XLSX from 'xlsx';
 import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
 import { formatImageUrl } from '../lib/utils';
+import ProjectThumbnail from '../components/ProjectThumbnail';
 import { DEFAULT_CURRICULUM } from '../components/Curriculum';
 
 function sanitizeUsername(name: string): string {
@@ -669,14 +670,13 @@ export default function AdminPanel() {
                   <span className={`absolute top-4 right-4 border-2 border-black px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${project.status === 'approved' ? 'bg-[#6BCB77] text-white' : 'bg-[#FFE66D] text-black'}`}>
                     {project.status === 'approved' ? 'Disetujui' : 'Pending'}
                   </span>
-                  <div className="w-full md:w-64 h-40 bg-gray-100 border-4 border-black rounded-2xl overflow-hidden shrink-0">
-                    <img 
-                      src={formatImageUrl(project.imageUrl)} 
-                      alt={project.title} 
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover" 
+                  <div className="w-full md:w-64 h-40 border-4 border-black rounded-2xl overflow-hidden shrink-0">
+                    <ProjectThumbnail
+                      imageUrl={project.imageUrl}
+                      title={project.title}
+                      type={project.type}
+                      category={project.category}
+                      imgClassName="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1">
@@ -1453,14 +1453,15 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="font-black text-sm uppercase tracking-widest pl-2">Link Gambar Cover (URL)</label>
+                  <label className="font-black text-sm uppercase tracking-widest pl-2">Link Gambar Cover (URL - Opsional)</label>
                   <input 
-                    type="url" required
+                    type="url"
                     value={editingProject.imageUrl}
                     onChange={e => setEditingProject({...editingProject, imageUrl: e.target.value})}
-                    placeholder="https://images.unsplash.com/... atau screenshot"
+                    placeholder="https://images.unsplash.com/... atau screenshot (Opsional)"
                     className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-xl font-black text-sm"
                   />
+                  <span className="text-[10px] text-gray-500 font-bold block pl-2">Kosongkan jika tidak ada cover gambar.</span>
                 </div>
 
                 <div className="space-y-2">

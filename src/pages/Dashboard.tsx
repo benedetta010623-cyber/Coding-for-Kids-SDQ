@@ -4,6 +4,7 @@ import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
 import { collection, addDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { formatImageUrl } from '../lib/utils';
+import ProjectThumbnail from '../components/ProjectThumbnail';
 import { motion } from 'motion/react';
 import { LayoutDashboard, LogOut, Plus, Gamepad2, ImageIcon, FileText, Globe, Clock, CheckCircle, AlertCircle, Sparkles, RefreshCw, Sliders } from 'lucide-react';
 import { 
@@ -564,15 +565,15 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="font-black text-sm uppercase tracking-widest pl-2">Link Gambar/Thumbnail</label>
+                    <label className="font-black text-sm uppercase tracking-widest pl-2">Link Gambar/Thumbnail (Opsional)</label>
                     <input 
-                      type="url" required
+                      type="url"
                       value={newProject.imageUrl}
                       onChange={e => setNewProject({...newProject, imageUrl: e.target.value})}
                       placeholder="https://imgur.com/your-image.jpg"
                       className="w-full bg-[#F3F4F6] border-2 border-black p-4 rounded-2xl font-black outline-none focus:bg-white"
                     />
-                    <span className="text-[10px] text-gray-500 font-bold block pl-2">Bisa link Imgur (misal: https://imgur.com/xyz), Unsplash, atau URL gambar publik.</span>
+                    <span className="text-[10px] text-gray-500 font-bold block pl-2">Kosongkan jika tidak ada. Sistem akan otomatis menampilkan icon karya (Game/Dokumen/Gambar) sesuai tipe project.</span>
                   </div>
                   <div className="space-y-2">
                     <label className="font-black text-sm uppercase tracking-widest pl-2">Link Project (Scratch/GDrive)</label>
@@ -631,19 +632,20 @@ export default function Dashboard() {
                 key={project.id}
                 className="bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_#FFD93D] flex flex-col"
               >
-                <div className="h-40 bg-gray-100 border-b-4 border-black relative">
-                  <img 
-                    src={formatImageUrl(project.imageUrl)} 
-                    alt={project.title} 
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover" 
+                <div className="h-40 border-b-4 border-black relative">
+                  <ProjectThumbnail
+                    imageUrl={project.imageUrl}
+                    title={project.title}
+                    type={project.type}
+                    category={project.category}
+                    imgClassName="w-full h-full object-cover"
+                    badge={
+                      <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg border-2 border-black font-black text-[10px] uppercase tracking-widest flex items-center gap-1 ${project.status === 'approved' ? 'bg-[#6BCB77] text-white' : 'bg-[#FFE66D]'}`}>
+                        {project.status === 'approved' ? <CheckCircle size={10} /> : <Clock size={10} />}
+                        {project.status === 'approved' ? 'Disetujui' : 'Tertunda'}
+                      </div>
+                    }
                   />
-                  <div className={`absolute top-4 right-4 px-3 py-1 rounded-lg border-2 border-black font-black text-[10px] uppercase tracking-widest flex items-center gap-1 ${project.status === 'approved' ? 'bg-[#6BCB77] text-white' : 'bg-[#FFE66D]'}`}>
-                    {project.status === 'approved' ? <CheckCircle size={10} /> : <Clock size={10} />}
-                    {project.status === 'approved' ? 'Disetujui' : 'Tertunda'}
-                  </div>
                 </div>
                 <div className="p-6 flex-1">
                   <span className="text-xs font-black text-[#FF6B6B] uppercase tracking-widest">{project.category}</span>

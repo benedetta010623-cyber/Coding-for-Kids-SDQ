@@ -6,6 +6,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { cn, formatImageUrl } from '../lib/utils';
 import Curriculum from '../components/Curriculum';
+import ProjectThumbnail from '../components/ProjectThumbnail';
 import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
 
 export default function Home() {
@@ -175,18 +176,19 @@ export default function Home() {
                 key={project.id} 
                 className="bg-white border-4 border-black rounded-[2.5rem] overflow-hidden shadow-[8px_8px_0px_black] group"
               >
-                <div className="h-48 bg-gray-100 border-b-4 border-black relative overflow-hidden">
-                  <img 
-                    src={formatImageUrl(project.imageUrl)} 
-                    alt={project.title} 
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                <div className="h-48 border-b-4 border-black relative overflow-hidden">
+                  <ProjectThumbnail
+                    imageUrl={project.imageUrl}
+                    title={project.title}
+                    type={project.type}
+                    category={project.category}
+                    imgClassName="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    badge={
+                      <div className="absolute top-4 left-4 bg-white border-2 border-black px-3 py-1 rounded-full font-black text-[10px] uppercase shadow-[2px_2px_0px_black]">
+                        {project.category}
+                      </div>
+                    }
                   />
-                  <div className="absolute top-4 left-4 bg-white border-2 border-black px-3 py-1 rounded-full font-black text-[10px] uppercase shadow-[2px_2px_0px_black]">
-                    {project.category}
-                  </div>
                 </div>
                 <div className="p-6">
                   <h3 className="font-['Fredoka_One'] text-xl mb-2 line-clamp-1">{project.title}</h3>

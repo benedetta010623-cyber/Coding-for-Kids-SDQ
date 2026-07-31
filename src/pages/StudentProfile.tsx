@@ -5,6 +5,7 @@ import { ChevronLeft, Gamepad2, FileText, Image as ImageIcon, ExternalLink, Awar
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { getAvatarUrl, getStudentAvatarSrc, handleAvatarError } from '../lib/avatar';
+import ProjectThumbnail from '../components/ProjectThumbnail';
 import { formatImageUrl } from '../lib/utils';
 
 export default function StudentProfile() {
@@ -125,18 +126,19 @@ export default function StudentProfile() {
                   whileHover={{ y: -8, x: 4 }}
                   className="bg-white border-4 border-black rounded-[2rem] overflow-hidden shadow-[10px_10px_0_#FFD93D]"
                 >
-                  <div className="h-48 bg-[#F3F4F6] border-b-4 border-black overflow-hidden relative group">
-                    <img 
-                      src={formatImageUrl(project.imageUrl)} 
-                      alt={project.title} 
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  <div className="h-48 border-b-4 border-black overflow-hidden relative group">
+                    <ProjectThumbnail
+                      imageUrl={project.imageUrl}
+                      title={project.title}
+                      type={project.type}
+                      category={project.category}
+                      imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      badge={
+                        <div className="absolute top-4 right-4 bg-white p-2 rounded-xl border-4 border-black shadow-[4px_4px_0px_black]">
+                          {project.type === 'scratch' ? <Gamepad2 size={24} /> : project.type === 'image' ? <ImageIcon size={24} /> : <FileText size={24} />}
+                        </div>
+                      }
                     />
-                    <div className="absolute top-4 right-4 bg-white p-2 rounded-xl border-4 border-black shadow-[4px_4px_0px_black]">
-                      {project.type === 'scratch' ? <Gamepad2 size={24} /> : project.type === 'image' ? <ImageIcon size={24} /> : <FileText size={24} />}
-                    </div>
                   </div>
                   <div className="p-8">
                     <span className="bg-[#4ECDC4] border-2 border-black rounded-lg px-3 py-1 font-black text-[10px] tracking-widest uppercase shadow-[3px_3px_0px_black]">{project.category}</span>
